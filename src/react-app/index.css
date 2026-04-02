@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+@plugin "daisyui";
+
+html body {
+  .form-control .label {
+    margin-bottom: 6px;
+  }
+  .input,
+  .select,
+  .textarea {
+    &:focus,
+    &:focus-within {
+      outline-offset: 0;
+    }
+  }
+}

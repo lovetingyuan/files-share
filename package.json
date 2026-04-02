@@ -1,0 +1,54 @@
+{
+  "name": "vite-react-template",
+  "private": true,
+  "description": "A template for building a React application with Vite, Hono, and Cloudflare Workers",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "cf-typegen": "wrangler types",
+    "check": "npm run cf-typegen && tsc && vite build && wrangler deploy --dry-run",
+    "deploy": "wrangler deploy",
+    "dev": "vite",
+    "lint": "oxlint . --fix && oxfmt .",
+    "preview": "npm run build && vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@iconify/react": "^6.0.2",
+    "@tailwindcss/vite": "^4.2.2",
+    "hono": "4.11.1",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.13.2",
+    "swr": "^2.4.1",
+    "tailwindcss": "^4.2.2"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.30.2",
+    "@cloudflare/vitest-pool-workers": "^0.14.0",
+    "@rolldown/plugin-babel": "^0.2.2",
+    "@types/node": "^24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "daisyui": "^5.5.19",
+    "oxfmt": "^0.42.0",
+    "oxlint": "^1.57.0",
+    "typescript": "5.8.3",
+    "vite": "^8.0.3",
+    "vitest": "^4.1.2",
+    "wrangler": "^4.78.0"
+  },
+  "cloudflare": {
+    "label": "Vite React Template",
+    "products": [
+      "Workers"
+    ],
+    "categories": [],
+    "preview_icon_url": "https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/532a5378-9717-4964-385b-5fafd2160200/public",
+    "preview_image_url": "https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/ec7f4be5-d1d6-4e94-0851-126341745400/preview",
+    "publish": true
+  }
+}
