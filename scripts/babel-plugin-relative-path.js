@@ -3,8 +3,8 @@
  * @see https://github.com/zthxxx/react-dev-inspector/tree/master/src/plugins/babel
  * 相比原版把行数和列数信息附加到了路径后面，可以直接定位到具体代码位置
  */
-import { relative } from 'path';
-import { jsxAttribute, jsxIdentifier, stringLiteral } from '@babel/types';
+import { relative } from "path";
+import { jsxAttribute, jsxIdentifier, stringLiteral } from "@babel/types";
 
 const isNil = (value) => value === null || value === undefined;
 
@@ -15,7 +15,7 @@ const pathMatch = (filePath, matches) => {
   if (!matches?.length) return false;
 
   return matches.some((match) => {
-    if (typeof match === 'string') {
+    if (typeof match === "string") {
       return filePath.includes(match);
     } else if (match instanceof RegExp) {
       return match.test(filePath);
@@ -26,7 +26,7 @@ const pathMatch = (filePath, matches) => {
 };
 
 const doJSXIdentifierName = (name) => {
-  if (name.name.endsWith('Fragment')) {
+  if (name.name.endsWith("Fragment")) {
     return { stop: true };
   }
   return { stop: false };
@@ -44,7 +44,7 @@ const doJSXPathName = (name) => {
   const visitors = {
     JSXIdentifier: doJSXIdentifierName,
     JSXMemberExpression: doJSXMemberExpressionName,
-    JSXNamespacedName: doJSXNamespacedNameName
+    JSXNamespacedName: doJSXNamespacedNameName,
   };
 
   return visitors[name.type](name);
@@ -67,12 +67,12 @@ const doJSXOpeningElement = (node, option) => {
   //   : jsxAttribute(jsxIdentifier('data-inspector-column'), stringLiteral(column.toString()));
 
   const relativePathAttr = jsxAttribute(
-    jsxIdentifier('data-inspector-relative-path'),
+    jsxIdentifier("data-inspector-relative-path"),
     stringLiteral(
-      relativePath.replace(/\\/g, '/') +
-        (isNil(line) ? '' : ':' + line) +
-        (isNil(line) || isNil(column) ? '' : ':' + column)
-    )
+      relativePath.replace(/\\/g, "/") +
+        (isNil(line) ? "" : ":" + line) +
+        (isNil(line) || isNil(column) ? "" : ":" + column),
+    ),
   );
 
   const attributes = [relativePathAttr]; // [lineAttr, columnAttr, relativePathAttr];
@@ -114,10 +114,10 @@ const createVisitor = ({ cwd, excludes }) => {
         const relativePath = pathRelative(filePath);
 
         doJSXOpeningElement(path.node, {
-          relativePath
+          relativePath,
         });
-      }
-    }
+      },
+    },
   };
 
   return visitor;
@@ -125,12 +125,12 @@ const createVisitor = ({ cwd, excludes }) => {
 
 function InspectorBabelPlugin(babel, options) {
   return {
-    name: 'react-dev-inspector-babel-plugin',
+    name: "react-dev-inspector-babel-plugin",
 
     visitor: createVisitor({
       cwd: options?.cwd,
-      excludes: ['node_modules/', ...(options?.excludes ?? [])]
-    })
+      excludes: ["node_modules/", ...(options?.excludes ?? [])],
+    }),
   };
 }
 

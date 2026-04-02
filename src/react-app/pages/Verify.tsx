@@ -35,7 +35,7 @@ export function Verify({ onSuccess }: VerifyProps) {
   }, [onSuccess, result]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-base-200">
+    <div className="flex flex-1 items-center justify-center p-4">
       <div className="card w-full max-w-md bg-base-100 shadow-xl">
         <div className="card-body text-center">
           {status === "loading" && (
@@ -49,7 +49,11 @@ export function Verify({ onSuccess }: VerifyProps) {
 
           {status === "success" && (
             <>
-              <Icon icon="mdi:check-circle" className="text-success text-6xl mb-4 mx-auto" width={72} />
+              <Icon
+                icon="mdi:check-circle"
+                className="text-success text-6xl mb-4 mx-auto"
+                width={72}
+              />
               <h2 className="card-title text-2xl font-bold justify-center">Email Verified!</h2>
               <p className="mt-2">Redirecting to login...</p>
             </>
@@ -57,7 +61,11 @@ export function Verify({ onSuccess }: VerifyProps) {
 
           {status === "error" && (
             <>
-              <Icon icon="mdi:close-circle" className="text-error text-6xl mb-4 mx-auto" width={72} />
+              <Icon
+                icon="mdi:close-circle"
+                className="text-error text-6xl mb-4 mx-auto"
+                width={72}
+              />
               <h2 className="card-title text-2xl font-bold justify-center">Verification Failed</h2>
               <p className="mt-2 text-error">{errorMessage}</p>
               <button type="button" className="btn btn-primary mt-4 gap-2" onClick={onSuccess}>

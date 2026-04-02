@@ -4,8 +4,15 @@ import { env } from "cloudflare:workers";
 import { runInDurableObject, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import type { FileListResponse } from "../src/shared/file-manager";
+import type { ProfileResponse } from "../src/shared/profile";
 import type { User } from "../src/worker/types";
 import { generateSalt, hashPassword } from "../src/worker/utils/password";
+
+const TINY_PNG_BYTES = new Uint8Array([
+  137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0,
+  0, 31, 21, 196, 137, 0, 0, 0, 13, 73, 68, 65, 84, 120, 156, 99, 248, 207, 192, 240, 31, 0, 5, 0,
+  1, 255, 137, 153, 61, 29, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+]);
 
 function createEmailAddress(): string {
   return `user-${crypto.randomUUID()}@example.com`;
@@ -48,27 +55,19 @@ async function apiFetch(path: string, init: RequestInit = {}, cookie?: string): 
     headers.set("Origin", "https://example.com");
   }
 
-  return SELF.fetch(`https://example.com${path}`, {
+  const response = await SELF.fetch(`https://example.com${path}`, {
     ...init,
     headers,
   });
-}
 
-function createOversizedBody(byteLength: number): ReadableStream<Uint8Array> {
-  let remaining = byteLength;
+  if (response.body) {
+    void response
+      .clone()
+      .arrayBuffer()
+      .catch(() => undefined);
+  }
 
-  return new ReadableStream<Uint8Array>({
-    pull(controller) {
-      if (remaining <= 0) {
-        controller.close();
-        return;
-      }
-
-      const chunkSize = Math.min(remaining, 64 * 1024);
-      controller.enqueue(new Uint8Array(chunkSize));
-      remaining -= chunkSize;
-    },
-  });
+  return response;
 }
 
 describe("authenticated R2 file manager", () => {
@@ -78,10 +77,14 @@ describe("authenticated R2 file manager", () => {
     const deleteResponse = await apiFetch("/api/files/object?path=hello.txt", {
       method: "DELETE",
     });
+    const profileResponse = await apiFetch("/api/profile");
+    const avatarResponse = await apiFetch("/api/profile/avatar");
 
     expect(listResponse.status).toBe(401);
     expect(downloadResponse.status).toBe(401);
     expect(deleteResponse.status).toBe(401);
+    expect(profileResponse.status).toBe(401);
+    expect(avatarResponse.status).toBe(401);
   });
 
   it("backfills rootDirId for existing users on first file access", async () => {
@@ -168,9 +171,13 @@ describe("authenticated R2 file manager", () => {
     expect(downloadResponse.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(downloadedText).toBe(fileContents);
 
-    const deleteResponse = await apiFetch("/api/files/object?path=docs/hello.txt", {
-      method: "DELETE",
-    }, cookie);
+    const deleteResponse = await apiFetch(
+      "/api/files/object?path=docs/hello.txt",
+      {
+        method: "DELETE",
+      },
+      cookie,
+    );
 
     expect(deleteResponse.status).toBe(200);
 
@@ -205,6 +212,22 @@ describe("authenticated R2 file manager", () => {
       firstCookie,
     );
     expect(reservedFolderResponse.status).toBe(400);
+
+    const hiddenFolderResponse = await apiFetch(
+      "/api/files/folders",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: ".hidden",
+          parentPath: "",
+        }),
+      },
+      firstCookie,
+    );
+    expect(hiddenFolderResponse.status).toBe(400);
 
     const createFolderResponse = await apiFetch(
       "/api/files/folders",
@@ -274,7 +297,7 @@ describe("authenticated R2 file manager", () => {
           "Content-Length": String(Number.parseInt(env.MAX_UPLOAD_BYTES, 10) + 1),
           "Content-Type": "application/octet-stream",
         },
-        body: createOversizedBody(Number.parseInt(env.MAX_UPLOAD_BYTES, 10) + 1),
+        body: new Uint8Array(Number.parseInt(env.MAX_UPLOAD_BYTES, 10) + 1),
       },
       firstCookie,
     );
@@ -287,5 +310,106 @@ describe("authenticated R2 file manager", () => {
       secondCookie,
     );
     expect(isolationResponse.status).toBe(404);
+
+    const reservedPathResponse = await apiFetch(
+      "/api/files/object?path=.user/avatar.png",
+      {},
+      firstCookie,
+    );
+    expect(reservedPathResponse.status).toBe(403);
+  });
+
+  it("serves profile data and stores avatars outside the main file manager", async () => {
+    const firstUser = await createVerifiedUser();
+    const firstCookie = await createSessionCookie(firstUser.email);
+    const secondUser = await createVerifiedUser();
+    const secondCookie = await createSessionCookie(secondUser.email);
+
+    const initialProfileResponse = await apiFetch("/api/profile", {}, firstCookie);
+    const initialProfile = (await initialProfileResponse.json()) as ProfileResponse;
+    const missingAvatarResponse = await apiFetch("/api/profile/avatar", {}, firstCookie);
+
+    expect(initialProfileResponse.status).toBe(200);
+    expect(initialProfile.profile).toEqual({
+      email: firstUser.email,
+      avatarUrl: null,
+    });
+    expect(missingAvatarResponse.status).toBe(404);
+    await missingAvatarResponse.text();
+
+    const invalidTypeResponse = await apiFetch(
+      "/api/profile/avatar",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "image/jpeg",
+        },
+        body: "not-a-png",
+      },
+      firstCookie,
+    );
+    expect(invalidTypeResponse.status).toBe(400);
+    await invalidTypeResponse.text();
+
+    const oversizedAvatarResponse = await apiFetch(
+      "/api/profile/avatar",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "image/png",
+          "Content-Length": String(1024 * 1024 + 1),
+        },
+        body: new Uint8Array(1024 * 1024 + 1),
+      },
+      firstCookie,
+    );
+    expect(oversizedAvatarResponse.status).toBe(413);
+    await oversizedAvatarResponse.text();
+
+    const uploadAvatarResponse = await apiFetch(
+      "/api/profile/avatar",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "image/png",
+        },
+        body: TINY_PNG_BYTES,
+      },
+      firstCookie,
+    );
+    expect(uploadAvatarResponse.status).toBe(200);
+    await uploadAvatarResponse.text();
+
+    const profileAfterUploadResponse = await apiFetch("/api/profile", {}, firstCookie);
+    const profileAfterUpload = (await profileAfterUploadResponse.json()) as ProfileResponse;
+
+    expect(profileAfterUpload.profile.email).toBe(firstUser.email);
+    expect(profileAfterUpload.profile.avatarUrl).toMatch(/^\/api\/profile\/avatar\?v=/);
+
+    const avatarResponse = await apiFetch("/api/profile/avatar", {}, firstCookie);
+    const avatarBytes = new Uint8Array(await avatarResponse.arrayBuffer());
+
+    expect(avatarResponse.status).toBe(200);
+    expect(avatarResponse.headers.get("Content-Type")).toContain("image/png");
+    expect(avatarResponse.headers.get("Cache-Control")).toBe("private, max-age=3600");
+    expect(Array.from(avatarBytes)).toEqual(Array.from(TINY_PNG_BYTES));
+
+    const secondUserAvatarResponse = await apiFetch("/api/profile/avatar", {}, secondCookie);
+    expect(secondUserAvatarResponse.status).toBe(404);
+    await secondUserAvatarResponse.text();
+
+    const rootListResponse = await apiFetch("/api/files", {}, firstCookie);
+    const rootList = (await rootListResponse.json()) as FileListResponse;
+    expect(rootList.folders.some((folder) => folder.name === ".user")).toBe(false);
+
+    const reservedFolderDeleteResponse = await apiFetch(
+      "/api/files/folders?path=.user",
+      {
+        method: "DELETE",
+      },
+      firstCookie,
+    );
+    expect(reservedFolderDeleteResponse.status).toBe(403);
+    await reservedFolderDeleteResponse.text();
   });
 });

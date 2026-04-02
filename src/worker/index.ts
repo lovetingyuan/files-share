@@ -3,19 +3,24 @@ import type { Context } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
 import { csrf } from "hono/csrf";
 import type { FileListResponse, FileMutationResponse } from "../shared/file-manager";
+import type { ProfileResponse } from "../shared/profile";
 import { UserDO } from "./durable-objects/UserDO";
 import { authMiddleware, requireAuth } from "./middleware/auth";
 import type { AuthVariables } from "./middleware/auth";
 import type { User } from "./types";
 import { sendVerificationEmail } from "./utils/email";
 import {
+  AVATAR_FILE_NAME,
   DEFAULT_MAX_UPLOAD_BYTES,
   FilePathValidationError,
   FOLDER_MARKER_NAME,
+  SYSTEM_PROFILE_FOLDER_NAME,
+  getAvatarPath,
   getBaseName,
   getFileKey,
   getFolderMarkerKey,
   getFolderPrefix,
+  isReservedSystemPath,
   joinRelativePath,
   normalizeName,
   normalizeRelativePath,
@@ -49,6 +54,9 @@ type FileContext = {
   rootDirId: string;
   user: User;
 };
+
+const AVATAR_MAX_UPLOAD_BYTES = 1024 * 1024;
+const AVATAR_CONTENT_TYPE = "image/png";
 
 class UploadTooLargeError extends Error {
   constructor(message: string) {
@@ -106,10 +114,7 @@ function jsonError(_c: Context<AppContext>, message: string, status: number): Re
   });
 }
 
-function handlePathValidationError(
-  c: Context<AppContext>,
-  error: unknown,
-): Response | undefined {
+function handlePathValidationError(c: Context<AppContext>, error: unknown): Response | undefined {
   if (error instanceof FilePathValidationError) {
     return jsonError(c, error.message, error.status);
   }
@@ -139,6 +144,18 @@ function createUploadStream(
       },
     }),
   );
+}
+
+function assertPathNotReserved(path: string): void {
+  if (isReservedSystemPath(path)) {
+    throw new FilePathValidationError("Path uses a reserved system directory", 403);
+  }
+}
+
+function assertFolderNameAllowed(name: string): void {
+  if (name.startsWith(".")) {
+    throw new FilePathValidationError('Folder name cannot start with "."');
+  }
 }
 
 async function folderExists(
@@ -388,6 +405,103 @@ app.get("/api/auth/me", requireAuth(), async (c) => {
   });
 });
 
+app.get("/api/profile", requireAuth(), async (c) => {
+  try {
+    const { rootDirId, user } = await getFileContext(c);
+    const avatarKey = getFileKey(rootDirId, getAvatarPath());
+    const avatar = await c.env.FILES_BUCKET.head(avatarKey);
+    const avatarVersion = avatar?.uploaded.toISOString();
+
+    const response: ProfileResponse = {
+      success: true,
+      profile: {
+        email: user.email,
+        avatarUrl: avatarVersion
+          ? `/api/profile/avatar?v=${encodeURIComponent(avatarVersion)}`
+          : null,
+      },
+    };
+
+    return c.json(response);
+  } catch (error) {
+    console.error("Failed to load profile", error);
+    return jsonError(c, "Failed to load profile", 500);
+  }
+});
+
+app.get("/api/profile/avatar", requireAuth(), async (c) => {
+  try {
+    const { rootDirId } = await getFileContext(c);
+    const object = await c.env.FILES_BUCKET.get(getFileKey(rootDirId, getAvatarPath()));
+
+    if (!object || !object.body) {
+      return jsonError(c, "Avatar not found", 404);
+    }
+
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set("Cache-Control", "private, max-age=3600");
+    headers.set("ETag", object.httpEtag);
+    headers.set("Last-Modified", object.uploaded.toUTCString());
+    headers.set("X-Content-Type-Options", "nosniff");
+
+    return new Response(object.body, {
+      headers,
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Failed to read avatar", error);
+    return jsonError(c, "Failed to read avatar", 500);
+  }
+});
+
+app.put("/api/profile/avatar", requireAuth(), async (c) => {
+  try {
+    const contentLengthHeader = c.req.header("content-length");
+    if (contentLengthHeader) {
+      const contentLength = Number.parseInt(contentLengthHeader, 10);
+      if (!Number.isFinite(contentLength) || contentLength < 0) {
+        return jsonError(c, "Invalid Content-Length header", 400);
+      }
+    }
+
+    const body = await c.req.arrayBuffer();
+    if (body.byteLength === 0) {
+      return jsonError(c, "Avatar body is required", 400);
+    }
+    if (body.byteLength > AVATAR_MAX_UPLOAD_BYTES) {
+      return jsonError(c, "Avatar upload exceeds the server limit", 413);
+    }
+
+    const contentType = (c.req.header("content-type") ?? "").split(";")[0]?.trim();
+    if (contentType !== AVATAR_CONTENT_TYPE) {
+      return jsonError(c, "Avatar must be uploaded as PNG", 400);
+    }
+
+    const { rootDirId } = await getFileContext(c);
+    const avatarKey = getFileKey(rootDirId, getAvatarPath());
+    await c.env.FILES_BUCKET.put(avatarKey, body, {
+      customMetadata: {
+        originalName: AVATAR_FILE_NAME,
+        kind: "avatar",
+      },
+      httpMetadata: {
+        contentType: AVATAR_CONTENT_TYPE,
+      },
+    });
+
+    const response: FileMutationResponse = {
+      success: true,
+      message: "Avatar updated successfully",
+    };
+
+    return c.json(response);
+  } catch (error) {
+    console.error("Failed to upload avatar", error);
+    return jsonError(c, "Failed to upload avatar", 500);
+  }
+});
+
 app.post("/api/auth/resend-verification", async (c) => {
   const body = await c.req.json<{ email: string }>();
   const { email } = body;
@@ -440,6 +554,7 @@ app.get("/api/files", requireAuth(), async (c) => {
   try {
     const path = normalizeRelativePath(c.req.query("path"), { allowEmpty: true, label: "Path" });
     const cursor = c.req.query("cursor") || undefined;
+    assertPathNotReserved(path);
     const { rootDirId } = await getFileContext(c);
 
     if (path && !(await folderExists(c.env, rootDirId, path))) {
@@ -456,6 +571,7 @@ app.get("/api/files", requireAuth(), async (c) => {
 
     const folders = listing.delimitedPrefixes
       .map((folderPrefix) => folderPrefix.slice(prefix.length).replace(/\/$/, ""))
+      .filter((name) => name !== SYSTEM_PROFILE_FOLDER_NAME)
       .filter(Boolean)
       .map((name) => ({
         name,
@@ -505,7 +621,9 @@ app.post("/api/files/folders", requireAuth(), async (c) => {
       allowEmpty: true,
       label: "Parent path",
     });
+    assertPathNotReserved(parentPath);
     const name = normalizeName(body.name, "Folder name");
+    assertFolderNameAllowed(name);
     const folderPath = joinRelativePath(parentPath, name);
     const { rootDirId } = await getFileContext(c);
 
@@ -557,6 +675,7 @@ app.delete("/api/files/folders", requireAuth(), async (c) => {
       allowEmpty: false,
       label: "Path",
     });
+    assertPathNotReserved(path);
     const { rootDirId } = await getFileContext(c);
 
     if (!(await folderExists(c.env, rootDirId, path))) {
@@ -603,8 +722,10 @@ app.put("/api/files/object", requireAuth(), async (c) => {
       allowEmpty: true,
       label: "Parent path",
     });
+    assertPathNotReserved(parentPath);
     const name = normalizeName(c.req.query("name"), "File name");
     const filePath = joinRelativePath(parentPath, name);
+    assertPathNotReserved(filePath);
     const { rootDirId } = await getFileContext(c);
 
     if (!(await folderExists(c.env, rootDirId, parentPath))) {
@@ -684,6 +805,7 @@ app.get("/api/files/object", requireAuth(), async (c) => {
       allowEmpty: false,
       label: "Path",
     });
+    assertPathNotReserved(path);
     const { rootDirId } = await getFileContext(c);
     const object = await c.env.FILES_BUCKET.get(getFileKey(rootDirId, path));
 
@@ -694,7 +816,10 @@ app.get("/api/files/object", requireAuth(), async (c) => {
     const headers = new Headers();
     object.writeHttpMetadata(headers);
     headers.set("Cache-Control", "private, no-store");
-    headers.set("Content-Disposition", toContentDisposition(object.customMetadata?.originalName ?? getBaseName(path)));
+    headers.set(
+      "Content-Disposition",
+      toContentDisposition(object.customMetadata?.originalName ?? getBaseName(path)),
+    );
     headers.set("ETag", object.httpEtag);
     headers.set("Last-Modified", object.uploaded.toUTCString());
     headers.set("X-Content-Type-Options", "nosniff");
@@ -720,6 +845,7 @@ app.delete("/api/files/object", requireAuth(), async (c) => {
       allowEmpty: false,
       label: "Path",
     });
+    assertPathNotReserved(path);
     const { rootDirId } = await getFileContext(c);
     const fileKey = getFileKey(rootDirId, path);
     const object = await c.env.FILES_BUCKET.head(fileKey);

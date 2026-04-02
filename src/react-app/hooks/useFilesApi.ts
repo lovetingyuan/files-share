@@ -40,11 +40,7 @@ export function useFileList(path: string) {
       return null;
     }
 
-    return [
-      FILES_ENDPOINT,
-      path,
-      pageIndex === 0 ? undefined : previousPageData?.cursor,
-    ];
+    return [FILES_ENDPOINT, path, pageIndex === 0 ? undefined : previousPageData?.cursor];
   };
 
   const { data, error, isLoading, isValidating, mutate, setSize } = useSWRInfinite<
@@ -146,9 +142,7 @@ export function useFileListWithOptimistic(path: string) {
   // Merge optimistic folders with real data
   const folders = [
     ...optimisticFolders,
-    ...result.data.folders.filter(
-      (f) => !optimisticFolders.some((of) => of.path === f.path),
-    ),
+    ...result.data.folders.filter((f) => !optimisticFolders.some((of) => of.path === f.path)),
   ];
 
   return {

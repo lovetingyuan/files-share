@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import toast from "react-hot-toast";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 interface LoginProps {
   onSwitchToRegister: () => void;
@@ -37,7 +37,7 @@ export function Login({ onSwitchToRegister }: LoginProps) {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-base-200">
+    <div className="flex flex-1 items-center justify-center p-4">
       <div className="card w-full max-w-md bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title text-2xl font-bold text-center justify-center mb-4">Login</h2>
@@ -45,7 +45,10 @@ export function Login({ onSwitchToRegister }: LoginProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="form-control">
               <label className="label">
-                <span className="label-text flex items-center gap-1"><Icon icon="mdi:email-outline" className="w-4 h-4" />Email</span>
+                <span className="label-text flex items-center gap-1">
+                  <Icon icon="mdi:email-outline" className="w-4 h-4" />
+                  Email
+                </span>
               </label>
               <input
                 type="email"
@@ -60,7 +63,10 @@ export function Login({ onSwitchToRegister }: LoginProps) {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text flex items-center gap-1"><Icon icon="mdi:lock-outline" className="w-4 h-4" />Password</span>
+                <span className="label-text flex items-center gap-1">
+                  <Icon icon="mdi:lock-outline" className="w-4 h-4" />
+                  Password
+                </span>
               </label>
               <input
                 type="password"
@@ -79,7 +85,14 @@ export function Login({ onSwitchToRegister }: LoginProps) {
                 className={`btn btn-primary gap-2 ${loading ? "loading" : ""}`}
                 disabled={loading}
               >
-                {loading ? "Logging in..." : <><Icon icon="mdi:login" className="w-5 h-5" />Login</>}
+                {loading ? (
+                  "Logging in..."
+                ) : (
+                  <>
+                    <Icon icon="mdi:login" className="w-5 h-5" />
+                    Login
+                  </>
+                )}
               </button>
             </div>
           </form>
