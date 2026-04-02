@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Icon } from '@iconify/react';
-import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Icon } from '@iconify/react'
+import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
 import {
   buildDownloadUrl,
   useCreateFolderMutation,
@@ -10,50 +10,50 @@ import {
   useDeleteFolderMutation,
   useFileListWithOptimistic,
   useUploadFileMutation,
-} from '../hooks/useFilesApi';
+} from '../hooks/useFilesApi'
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
   timeStyle: 'short',
-});
+})
 
 const sizeFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 1,
-});
+})
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) {
-    return `${bytes} B`;
+    return `${bytes} B`
   }
 
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  let value = bytes;
-  let unitIndex = -1;
+  const units = ['KB', 'MB', 'GB', 'TB']
+  let value = bytes
+  let unitIndex = -1
 
   while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
+    value /= 1024
+    unitIndex += 1
   }
 
-  return `${sizeFormatter.format(value)} ${units[unitIndex]}`;
+  return `${sizeFormatter.format(value)} ${units[unitIndex]}`
 }
 
 function getDownloadFilename(contentDisposition: string | null, fallbackName: string): string {
   if (!contentDisposition) {
-    return fallbackName;
+    return fallbackName
   }
 
-  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
   if (utf8Match?.[1]) {
     try {
-      return decodeURIComponent(utf8Match[1]);
+      return decodeURIComponent(utf8Match[1])
     } catch {
-      return fallbackName;
+      return fallbackName
     }
   }
 
-  const plainMatch = contentDisposition.match(/filename="([^"]+)"/i);
-  return plainMatch?.[1] ?? fallbackName;
+  const plainMatch = contentDisposition.match(/filename="([^"]+)"/i)
+  return plainMatch?.[1] ?? fallbackName
 }
 
 const FILE_ICON_MAP: Record<string, { icon: string; color: string }> = {
@@ -205,36 +205,39 @@ const FILE_ICON_MAP: Record<string, { icon: string; color: string }> = {
   bak: { icon: 'mdi:file-restore', color: 'text-gray-400' },
   tmp: { icon: 'mdi:file-clock', color: 'text-gray-400' },
   torrent: { icon: 'mdi:magnet', color: 'text-green-500' },
-};
-
-const DEFAULT_FILE_ICON = { icon: 'mdi:file-outline', color: 'text-info' };
-
-function getFileIcon(filename: string): { icon: string; color: string } {
-  const ext = filename.lastIndexOf('.') !== -1 ? filename.slice(filename.lastIndexOf('.') + 1).toLowerCase() : '';
-  return FILE_ICON_MAP[ext] ?? DEFAULT_FILE_ICON;
 }
 
-const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/;
+const DEFAULT_FILE_ICON = { icon: 'mdi:file-outline', color: 'text-info' }
+
+function getFileIcon(filename: string): { icon: string; color: string } {
+  const ext =
+    filename.lastIndexOf('.') !== -1
+      ? filename.slice(filename.lastIndexOf('.') + 1).toLowerCase()
+      : ''
+  return FILE_ICON_MAP[ext] ?? DEFAULT_FILE_ICON
+}
+
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/
 
 function validateFolderName(name: string): string | null {
-  if (!name) return 'Folder name cannot be empty';
-  if (name.includes('/')) return 'Folder name cannot contain "/"';
-  if (name.includes('\\')) return 'Folder name cannot contain "\\"';
-  if (name === '.' || name === '..') return 'Folder name cannot be "." or ".."';
-  if (name === '.fileshare-folder') return 'This is a reserved name';
-  if (CONTROL_CHARACTER_PATTERN.test(name)) return 'Folder name contains invalid characters';
-  return null;
+  if (!name) return 'Folder name cannot be empty'
+  if (name.includes('/')) return 'Folder name cannot contain "/"'
+  if (name.includes('\\')) return 'Folder name cannot contain "\\"'
+  if (name === '.' || name === '..') return 'Folder name cannot be "." or ".."'
+  if (name === '.fileshare-folder') return 'This is a reserved name'
+  if (CONTROL_CHARACTER_PATTERN.test(name)) return 'Folder name contains invalid characters'
+  return null
 }
 
 export function Dashboard() {
-  const { user, logout } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const newFolderInputRef = useRef<HTMLInputElement | null>(null);
-  const [isCreatingNewFolder, setIsCreatingNewFolder] = useState(false);
-  const [newFolderDefaultName, setNewFolderDefaultName] = useState('');
-  const [downloadingPath, setDownloadingPath] = useState<string | null>(null);
-  const currentPath = searchParams.get('path') ?? '';
+  const { user, logout } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const newFolderInputRef = useRef<HTMLInputElement | null>(null)
+  const [isCreatingNewFolder, setIsCreatingNewFolder] = useState(false)
+  const [newFolderDefaultName, setNewFolderDefaultName] = useState('')
+  const [downloadingPath, setDownloadingPath] = useState<string | null>(null)
+  const currentPath = searchParams.get('path') ?? ''
   const {
     data,
     error,
@@ -245,161 +248,175 @@ export function Dashboard() {
     refresh,
     addOptimisticFolder,
     removeOptimisticFolder,
-  } = useFileListWithOptimistic(currentPath);
-  const { createFolder, isMutating: isCreatingFolder } = useCreateFolderMutation();
-  const { uploadFile, isMutating: isUploadingFile } = useUploadFileMutation();
-  const { deleteFile, isMutating: isDeletingFile } = useDeleteFileMutation();
-  const { deleteFolder, isMutating: isDeletingFolder } = useDeleteFolderMutation();
+  } = useFileListWithOptimistic(currentPath)
+  const { createFolder, isMutating: isCreatingFolder } = useCreateFolderMutation()
+  const { uploadFile, isMutating: isUploadingFile } = useUploadFileMutation()
+  const { deleteFile, isMutating: isDeletingFile } = useDeleteFileMutation()
+  const { deleteFolder, isMutating: isDeletingFolder } = useDeleteFolderMutation()
 
-  const busy = isCreatingFolder || isUploadingFile || isDeletingFile || isDeletingFolder || downloadingPath !== null;
-  const totalBytes = data.files.reduce((sum, file) => sum + file.size, 0);
-  const breadcrumbs = currentPath ? currentPath.split('/') : [];
+  const busy =
+    isCreatingFolder ||
+    isUploadingFile ||
+    isDeletingFile ||
+    isDeletingFolder ||
+    downloadingPath !== null
+  const totalBytes = data.files.reduce((sum, file) => sum + file.size, 0)
+  const breadcrumbs = currentPath ? currentPath.split('/') : []
 
   const setPath = (path: string) => {
-    const nextSearchParams = new URLSearchParams();
+    const nextSearchParams = new URLSearchParams()
     if (path) {
-      nextSearchParams.set('path', path);
+      nextSearchParams.set('path', path)
     }
 
-    setSearchParams(nextSearchParams);
-  };
+    setSearchParams(nextSearchParams)
+  }
 
   const handleLogout = async () => {
-    await logout();
-  };
+    await logout()
+  }
 
   const getUniqueFolderName = (baseName: string): string => {
-    const existingNames = new Set(data.folders.map((f) => f.name));
-    if (!existingNames.has(baseName)) return baseName;
-    let counter = 1;
+    const existingNames = new Set(data.folders.map(f => f.name))
+    if (!existingNames.has(baseName)) return baseName
+    let counter = 1
     while (existingNames.has(`${baseName} (${counter})`)) {
-      counter++;
+      counter++
     }
-    return `${baseName} (${counter})`;
-  };
+    return `${baseName} (${counter})`
+  }
 
   const handleStartCreateFolder = () => {
-    setNewFolderDefaultName(getUniqueFolderName('新建文件夹'));
-    setIsCreatingNewFolder(true);
-  };
+    setNewFolderDefaultName(getUniqueFolderName('新建文件夹'))
+    setIsCreatingNewFolder(true)
+  }
 
   useEffect(() => {
     if (isCreatingNewFolder && newFolderInputRef.current) {
-      newFolderInputRef.current.focus();
-      newFolderInputRef.current.select();
+      newFolderInputRef.current.focus()
+      newFolderInputRef.current.select()
     }
-  }, [isCreatingNewFolder]);
+  }, [isCreatingNewFolder])
 
   const handleNewFolderBlur = async () => {
-    const name = newFolderInputRef.current?.value.trim();
-    setIsCreatingNewFolder(false);
+    const name = newFolderInputRef.current?.value.trim()
+    setIsCreatingNewFolder(false)
 
-    if (!name) return;
+    if (!name) return
 
-    const validationError = validateFolderName(name);
+    const validationError = validateFolderName(name)
     if (validationError) {
-      toast.error(validationError);
-      return;
+      toast.error(validationError)
+      return
     }
 
     // Optimistic update: add folder immediately
-    const optimisticPath = addOptimisticFolder(name);
+    const optimisticPath = addOptimisticFolder(name)
 
     try {
-      await createFolder(currentPath, name);
+      await createFolder(currentPath, name)
       // Refresh first so real data is available before removing optimistic folder
-      await refresh();
-      removeOptimisticFolder(optimisticPath);
-      toast.success('Folder created');
+      await refresh()
+      removeOptimisticFolder(optimisticPath)
+      toast.success('Folder created')
     } catch (err) {
       // Rollback on error
-      removeOptimisticFolder(optimisticPath);
-      toast.error(err instanceof Error ? err.message : 'Failed to create folder');
+      removeOptimisticFolder(optimisticPath)
+      toast.error(err instanceof Error ? err.message : 'Failed to create folder')
     }
-  };
+  }
 
   const handleNewFolderKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
-      newFolderInputRef.current?.blur();
+      newFolderInputRef.current?.blur()
     } else if (event.key === 'Escape') {
-      setIsCreatingNewFolder(false);
+      setIsCreatingNewFolder(false)
     }
-  };
+  }
 
   const handleUploadSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
+    const file = event.target.files?.[0]
+    event.target.value = ''
 
     if (!file) {
-      return;
+      return
     }
 
     try {
-      await uploadFile(file, currentPath);
-      await refresh();
-      toast.success(`"${file.name}" uploaded`);
+      await uploadFile(file, currentPath)
+      await refresh()
+      toast.success(`"${file.name}" uploaded`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to upload file');
+      toast.error(err instanceof Error ? err.message : 'Failed to upload file')
     }
-  };
+  }
 
   const handleDeleteFile = async (path: string, name: string) => {
     try {
-      await deleteFile(path);
-      await refresh();
-      toast.success(`"${name}" deleted`);
+      await deleteFile(path)
+      await refresh()
+      toast.success(`"${name}" deleted`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete file');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete file')
     }
-  };
+  }
 
   const handleDeleteFolder = async (path: string, name: string) => {
     try {
-      await deleteFolder(path);
-      await refresh();
+      await deleteFolder(path)
+      await refresh()
       toast.success(`Folder "${name}" deleted`, {
         className: 'toast',
-      });
+      })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete folder');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete folder')
     }
-  };
+  }
 
   const handleDownloadFile = async (path: string, fallbackName: string) => {
     try {
-      setDownloadingPath(path);
+      setDownloadingPath(path)
 
       const response = await fetch(buildDownloadUrl(path), {
         credentials: 'include',
-      });
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to download file');
+        throw new Error('Failed to download file')
       }
 
-      const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = downloadUrl;
-      anchor.download = getDownloadFilename(response.headers.get('Content-Disposition'), fallbackName);
-      document.body.append(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(downloadUrl);
+      const blob = await response.blob()
+      const downloadUrl = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = downloadUrl
+      anchor.download = getDownloadFilename(
+        response.headers.get('Content-Disposition'),
+        fallbackName,
+      )
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(downloadUrl)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to download file');
+      toast.error(err instanceof Error ? err.message : 'Failed to download file')
     } finally {
-      setDownloadingPath(null);
+      setDownloadingPath(null)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-base-200">
-      <input ref={fileInputRef} type="file" className="hidden" onChange={handleUploadSelection} disabled={busy} />
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleUploadSelection}
+        disabled={busy}
+      />
 
-      <nav className="navbar bg-base-100 shadow-sm">
+      <nav className="navbar bg-base-100 shadow-sm px-6">
         <div className="flex-1">
-          <span className="btn btn-ghost text-xl gap-2 cursor-pointer" onClick={() => setPath('')}>
+          <span className="flex items-center text-xl gap-2 cursor-pointer">
             <img src="/favicon.svg" alt="logo" className="w-6 h-6" />
             File Share
           </span>
@@ -446,14 +463,18 @@ export function Dashboard() {
                     </button>
                   </li>
                   {breadcrumbs.map((segment, index) => {
-                    const path = breadcrumbs.slice(0, index + 1).join('/');
+                    const path = breadcrumbs.slice(0, index + 1).join('/')
                     return (
                       <li key={path}>
-                        <button type="button" className="link link-hover" onClick={() => setPath(path)}>
+                        <button
+                          type="button"
+                          className="link link-hover"
+                          onClick={() => setPath(path)}
+                        >
                           {segment}
                         </button>
                       </li>
-                    );
+                    )
                   })}
                 </ul>
               </div>
@@ -462,7 +483,10 @@ export function Dashboard() {
                 <span className="text-xs text-base-content/60 whitespace-nowrap">
                   {data.files.length} 个文件，共 {formatBytes(totalBytes)}
                 </span>
-                <div className="tooltip" data-tip={isUploadingFile ? 'Uploading...' : 'Upload File'}>
+                <div
+                  className="tooltip"
+                  data-tip={isUploadingFile ? 'Uploading...' : 'Upload File'}
+                >
                   <button
                     type="button"
                     className={`btn btn-primary btn-square btn-sm ${isUploadingFile ? 'loading' : ''}`}
@@ -497,8 +521,14 @@ export function Dashboard() {
 
             {error ? (
               <div className="rounded-box border border-base-300 bg-base-200 p-6 text-center">
-                <p className="mb-4 text-sm text-base-content/70">The current folder could not be loaded.</p>
-                <button type="button" className="btn btn-primary btn-sm gap-2" onClick={() => setPath('')}>
+                <p className="mb-4 text-sm text-base-content/70">
+                  The current folder could not be loaded.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm gap-2"
+                  onClick={() => setPath('')}
+                >
                   <Icon icon="mdi:home-outline" className="w-4 h-4" />
                   Go to Home
                 </button>
@@ -514,8 +544,8 @@ export function Dashboard() {
                     <thead className="bg-base-300">
                       <tr className="bg-base-200">
                         <th className="w-auto">Name</th>
-                        <th className="w-24">Size</th>
-                        <th className="w-40">Updated</th>
+                        <th className="w-28">Size</th>
+                        <th className="w-46">Updated</th>
                         <th className="w-24 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -540,17 +570,22 @@ export function Dashboard() {
                           <td className="text-right"></td>
                         </tr>
                       )}
-                      {data.folders.map((folder) => {
-                        const isOptimistic = 'isOptimistic' in folder;
+                      {data.folders.map(folder => {
+                        const isOptimistic = 'isOptimistic' in folder
                         return (
-                          <tr key={`folder:${folder.path}`} className={isOptimistic ? 'opacity-60' : ''}>
+                          <tr
+                            key={`folder:${folder.path}`}
+                            className={isOptimistic ? 'opacity-60' : ''}
+                          >
                             <td>
                               <span className="inline-flex items-center gap-2 align-middle">
                                 <Icon
                                   icon={isOptimistic ? 'mdi:folder-sync' : 'mdi:folder'}
                                   className="w-5 h-5 text-warning"
                                 />
-                                {isOptimistic && <span className="loading loading-spinner loading-xs"></span>}
+                                {isOptimistic && (
+                                  <span className="loading loading-spinner loading-xs"></span>
+                                )}
                                 <button
                                   type="button"
                                   className="font-medium link link-hover"
@@ -583,8 +618,8 @@ export function Dashboard() {
                                           type="button"
                                           className="text-error"
                                           onClick={() => {
-                                            (document.activeElement as HTMLElement)?.blur();
-                                            handleDeleteFolder(folder.path, folder.name);
+                                            ;(document.activeElement as HTMLElement)?.blur()
+                                            handleDeleteFolder(folder.path, folder.name)
                                           }}
                                         >
                                           确认删除？
@@ -596,24 +631,33 @@ export function Dashboard() {
                               )}
                             </td>
                           </tr>
-                        );
+                        )
                       })}
-                      {data.files.map((file) => {
-                        const fileIcon = getFileIcon(file.name);
+                      {data.files.map(file => {
+                        const fileIcon = getFileIcon(file.name)
                         return (
                           <tr key={`file:${file.path}`}>
                             <td className="font-medium truncate">
                               <span className="inline-flex items-start gap-2 max-w-full align-middle">
-                                <Icon icon={fileIcon.icon} className={`w-5 h-5 shrink-0 ${fileIcon.color}`} />
+                                <Icon
+                                  icon={fileIcon.icon}
+                                  className={`w-5 h-5 shrink-0 ${fileIcon.color}`}
+                                />
                                 <span className="truncate">{file.name}</span>
                               </span>
                             </td>
                             <td className="text-base-content/50" style={{ fontSize: 13 }}>
-                              <span className="tooltip" data-tip={`${file.size.toLocaleString()} 字节`}>
+                              <span
+                                className="tooltip"
+                                data-tip={`${file.size.toLocaleString()} 字节`}
+                              >
                                 {formatBytes(file.size)}
                               </span>
                             </td>
-                            <td className="whitespace-nowrap text-base-content/50" style={{ fontSize: 13 }}>
+                            <td
+                              className="whitespace-nowrap text-base-content/50"
+                              style={{ fontSize: 13 }}
+                            >
                               {dateFormatter.format(new Date(file.uploadedAt))}
                             </td>
                             <td>
@@ -646,8 +690,8 @@ export function Dashboard() {
                                         type="button"
                                         className="text-error"
                                         onClick={() => {
-                                          (document.activeElement as HTMLElement)?.blur();
-                                          handleDeleteFile(file.path, file.name);
+                                          ;(document.activeElement as HTMLElement)?.blur()
+                                          handleDeleteFile(file.path, file.name)
                                         }}
                                       >
                                         确认删除？
@@ -658,7 +702,7 @@ export function Dashboard() {
                               </div>
                             </td>
                           </tr>
-                        );
+                        )
                       })}
                       {data.folders.length === 0 && data.files.length === 0 && (
                         <tr>
@@ -692,5 +736,5 @@ export function Dashboard() {
         </section>
       </main>
     </div>
-  );
+  )
 }
