@@ -1,7 +1,7 @@
 import { createContext } from "react";
 import type { User } from "../hooks/useAuthApi";
 
-export interface AuthContextType {
+interface AuthContextType {
   user: User | null;
   authLoading: boolean;
   loading: boolean;

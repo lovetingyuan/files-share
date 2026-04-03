@@ -77,7 +77,7 @@ export async function verifyPassword(
 /**
  * Password validation result
  */
-export interface PasswordValidationResult {
+interface PasswordValidationResult {
   valid: boolean;
   errors: string[];
 }

@@ -109,7 +109,7 @@ export function getAvatarPath(): string {
   return `${SYSTEM_PROFILE_FOLDER_NAME}/${AVATAR_FILE_NAME}`;
 }
 
-export function getBucketRootPrefix(rootDirId: string): string {
+function getBucketRootPrefix(rootDirId: string): string {
   return `${rootDirId}/`;
 }
 

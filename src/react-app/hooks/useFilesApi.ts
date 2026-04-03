@@ -32,7 +32,7 @@ export function buildPreviewUrl(path: string): string {
   return `/api/files/preview?${params.toString()}`;
 }
 
-export function useFileList(path: string, sort: SortKey, order: SortOrder) {
+function useFileList(path: string, sort: SortKey, order: SortOrder) {
   const { data, error, isLoading, isValidating, mutate } = useSWR<FileListResponse, ApiError>(
     [FILES_ENDPOINT, path, sort, order] as FileListKey,
     (key) => {

@@ -2,7 +2,7 @@
  * Email utilities using Resend API
  */
 
-export interface SendVerificationEmailOptions {
+interface SendVerificationEmailOptions {
   to: string;
   verificationToken: string;
   appUrl: string;

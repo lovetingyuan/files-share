@@ -19,35 +19,3 @@ export interface VerificationToken {
   createdAt: number;
   expiresAt: number;
 }
-
-export interface UserDOStorage {
-  user: User;
-  sessions: Map<string, Session>;
-  verificationTokens: Map<string, VerificationToken>;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  success: boolean;
-  message: string;
-  user?: {
-    email: string;
-    verified: boolean;
-  };
-}
-
-export interface ErrorResponse {
-  success: false;
-  error: string;
-}
-
-export type ApiResponse = AuthResponse | ErrorResponse;

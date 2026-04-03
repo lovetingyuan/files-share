@@ -12,7 +12,3 @@ export type AppContext = {
   Bindings: AppBindings;
   Variables: AuthVariables;
 };
-
-export type FileContext = {
-  rootDirId: string;
-};

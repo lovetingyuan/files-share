@@ -9,7 +9,7 @@ import {
 } from "./fileManager";
 import { UploadTooLargeError } from "./response";
 
-export function appendVary(currentValue: string | null, nextValue: string): string {
+function appendVary(currentValue: string | null, nextValue: string): string {
   const existingValues = (currentValue ?? "")
     .split(",")
     .map((value) => value.trim())
@@ -22,7 +22,7 @@ export function appendVary(currentValue: string | null, nextValue: string): stri
   return existingValues.join(", ");
 }
 
-export function getAllowedOrigins(c: Context<AppContext>): Set<string> {
+function getAllowedOrigins(c: Context<AppContext>): Set<string> {
   const allowedOrigins = new Set<string>([new URL(c.req.url).origin]);
   if (c.env.APP_URL) {
     try {

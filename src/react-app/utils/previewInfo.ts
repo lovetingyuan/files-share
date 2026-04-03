@@ -22,7 +22,7 @@ const NATIVE_VIDEO_EXTS = new Set(["mp4", "webm", "ogg"]);
 const NATIVE_AUDIO_EXTS = new Set(["mp3", "wav", "ogg", "aac", "flac", "m4a"]);
 const UNSUPPORTED_IMAGE_EXTS = new Set(["psd", "ai", "tiff", "tif", "heic", "heif", "raw"]);
 const UNSUPPORTED_VIDEO_EXTS = new Set(["avi", "mov", "mkv", "wmv", "flv", "m4v", "3gp"]);
-export const TEXT_EXTS = new Set([
+const TEXT_EXTS = new Set([
   "txt",
   "log",
   "md",
