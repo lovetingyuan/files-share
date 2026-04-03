@@ -39,3 +39,7 @@ src/
 - **React Hooks**: Try to avoid using useEffect; please refer to the corresponding best practices.
 - **Honojs**: Hono routes must use full path definitions, and route processing methods are split into separate modules.
 - **typescript**: Place common and global types at src/types.ts.
+
+## Debug
+
+- **use real browser**: local server is vite dev server, and the default user account is `test1@tingyuan.in` and password is `test1@tingyuan.inA`.

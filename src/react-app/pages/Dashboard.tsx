@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Icon } from '@iconify/react';
-import toast from 'react-hot-toast';
+import { useCallback, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Icon } from '@iconify/react'
+import toast from 'react-hot-toast'
 import {
   buildDownloadUrl,
   useCreateFolderMutation,
@@ -10,28 +10,29 @@ import {
   useFileListWithOptimistic,
   useUploadFileMutation,
   useUpdateFileMutation,
-} from '../hooks/useFilesApi';
-import { FileToolbar } from '../components/FileToolbar';
-import { FileRow, FolderRow, NewFolderRow } from '../components/FileTableRows';
-import { PreviewModal } from '../components/PreviewModal';
-import { NewTextFileModal } from '../components/NewTextFileModal';
-import { getPreviewInfo } from '../utils/previewInfo';
-import { getDownloadFilename } from '../utils/fileFormatters';
-import { validateFolderName } from '../utils/folderValidation';
-import type { FileEntry, SortKey, SortOrder } from '../../types';
+} from '../hooks/useFilesApi'
+import { FileToolbar } from '../components/FileToolbar'
+import { FileRow, FolderRow, NewFolderRow } from '../components/FileTableRows'
+import { PreviewModal } from '../components/PreviewModal'
+import { NewTextFileModal } from '../components/NewTextFileModal'
+import { getPreviewInfo } from '../utils/previewInfo'
+import { getDownloadFilename } from '../utils/fileFormatters'
+import { validateFolderName } from '../utils/folderValidation'
+import type { FileEntry, SortKey, SortOrder } from '../../types'
 
 export function Dashboard() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const newFolderInputRef = useRef<HTMLInputElement | null>(null);
-  const [isCreatingNewFolder, setIsCreatingNewFolder] = useState(false);
-  const [newFolderDefaultName, setNewFolderDefaultName] = useState('');
-  const [downloadingPath, setDownloadingPath] = useState<string | null>(null);
-  const [previewFile, setPreviewFile] = useState<FileEntry | null>(null);
-  const [isNewTextFileModalOpen, setIsNewTextFileModalOpen] = useState(false);
-  const currentPath = searchParams.get('path') ?? '';
-  const [sort, setSort] = useState<SortKey>('uploadedAt');
-  const [order, setOrder] = useState<SortOrder>('desc');
+  const [searchParams, setSearchParams] = useSearchParams()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const newFolderInputRef = useRef<HTMLInputElement | null>(null)
+  const [isCreatingNewFolder, setIsCreatingNewFolder] = useState(false)
+  const [newFolderDefaultName, setNewFolderDefaultName] = useState('')
+  const [downloadingPath, setDownloadingPath] = useState<string | null>(null)
+  const [previewFile, setPreviewFile] = useState<FileEntry | null>(null)
+  const [isNewTextFileModalOpen, setIsNewTextFileModalOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const currentPath = searchParams.get('path') ?? ''
+  const [sort, setSort] = useState<SortKey>('uploadedAt')
+  const [order, setOrder] = useState<SortOrder>('desc')
 
   const {
     data,
@@ -41,204 +42,252 @@ export function Dashboard() {
     refresh,
     addOptimisticFolder,
     removeOptimisticFolder,
-  } = useFileListWithOptimistic(currentPath, sort, order);
-  const { createFolder, isMutating: isCreatingFolder } = useCreateFolderMutation();
-  const { uploadFile, isMutating: isUploadingFile } = useUploadFileMutation();
-  const { updateFile } = useUpdateFileMutation();
-  const { deleteFile, isMutating: isDeletingFile } = useDeleteFileMutation();
-  const { deleteFolder, isMutating: isDeletingFolder } = useDeleteFolderMutation();
+  } = useFileListWithOptimistic(currentPath, sort, order)
+  const { createFolder, isMutating: isCreatingFolder } = useCreateFolderMutation()
+  const { uploadFile, isMutating: isUploadingFile } = useUploadFileMutation()
+  const { updateFile } = useUpdateFileMutation()
+  const { deleteFile, isMutating: isDeletingFile } = useDeleteFileMutation()
+  const { deleteFolder, isMutating: isDeletingFolder } = useDeleteFolderMutation()
 
-  const busy = isCreatingFolder || isUploadingFile || isDeletingFile || isDeletingFolder || downloadingPath !== null;
-  const totalBytes = data.files.reduce((sum, file) => sum + file.size, 0);
-  const breadcrumbs = currentPath ? currentPath.split('/') : [];
+  const busy =
+    isCreatingFolder ||
+    isUploadingFile ||
+    isDeletingFile ||
+    isDeletingFolder ||
+    downloadingPath !== null
+
+  const fuzzyMatch = (name: string, query: string) => {
+    if (!query) return true
+    const lowerName = name.toLowerCase()
+    const lowerQuery = query.toLowerCase()
+    let qi = 0
+    for (let i = 0; i < lowerName.length && qi < lowerQuery.length; i++) {
+      if (lowerName[i] === lowerQuery[qi]) qi++
+    }
+    return qi === lowerQuery.length
+  }
+
+  const filteredFolders = data.folders.filter(f => fuzzyMatch(f.name, searchQuery))
+  const filteredFiles = data.files.filter(f => fuzzyMatch(f.name, searchQuery))
+  const totalBytes = filteredFiles.reduce((sum, file) => sum + file.size, 0)
+  const breadcrumbs = currentPath ? currentPath.split('/') : []
+  const hasItems = filteredFiles.length > 0 || filteredFolders.length > 0
+
+  const handleHeaderSort = (key: SortKey) => {
+    if (sort === key) {
+      setOrder(order === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSort(key)
+      setOrder(key === 'name' ? 'asc' : 'desc')
+    }
+  }
 
   const setPath = (path: string) => {
-    const nextSearchParams = new URLSearchParams();
-    if (path) nextSearchParams.set('path', path);
-    setSearchParams(nextSearchParams);
-  };
+    const nextSearchParams = new URLSearchParams()
+    if (path) nextSearchParams.set('path', path)
+    setSearchParams(nextSearchParams)
+    setSearchQuery('')
+  }
 
   const getUniqueFolderName = (baseName: string): string => {
-    const existingNames = new Set(data.folders.map((f) => f.name));
-    if (!existingNames.has(baseName)) return baseName;
-    let counter = 1;
-    while (existingNames.has(`${baseName} (${counter})`)) counter++;
-    return `${baseName} (${counter})`;
-  };
+    const existingNames = new Set(data.folders.map(f => f.name))
+    if (!existingNames.has(baseName)) return baseName
+    let counter = 1
+    while (existingNames.has(`${baseName} (${counter})`)) counter++
+    return `${baseName} (${counter})`
+  }
 
   // Callback ref: focus and select the input when it mounts (replaces useEffect)
   const newFolderFocusRef = useCallback((node: HTMLInputElement | null) => {
-    newFolderInputRef.current = node;
+    newFolderInputRef.current = node
     if (node) {
-      node.focus();
-      node.select();
+      node.focus()
+      node.select()
     }
-  }, []);
+  }, [])
 
   const handleStartCreateFolder = () => {
-    setNewFolderDefaultName(getUniqueFolderName('新建文件夹'));
-    setIsCreatingNewFolder(true);
-  };
+    setNewFolderDefaultName(getUniqueFolderName('新建文件夹'))
+    setIsCreatingNewFolder(true)
+  }
 
   const handleNewFolderBlur = async () => {
-    const name = newFolderInputRef.current?.value.trim();
-    setIsCreatingNewFolder(false);
-    if (!name) return;
+    const name = newFolderInputRef.current?.value.trim()
+    setIsCreatingNewFolder(false)
+    if (!name) return
 
-    const validationError = validateFolderName(name);
+    const validationError = validateFolderName(name)
     if (validationError) {
-      toast.error(validationError);
-      return;
+      toast.error(validationError)
+      return
     }
 
-    const optimisticPath = addOptimisticFolder(name);
+    const optimisticPath = addOptimisticFolder(name)
     try {
-      await createFolder(currentPath, name);
-      await refresh();
-      removeOptimisticFolder(optimisticPath);
-      toast.success('Folder created');
+      await createFolder(currentPath, name)
+      await refresh()
+      removeOptimisticFolder(optimisticPath)
+      toast.success('Folder created')
     } catch (err) {
-      removeOptimisticFolder(optimisticPath);
-      toast.error(err instanceof Error ? err.message : 'Failed to create folder');
+      removeOptimisticFolder(optimisticPath)
+      toast.error(err instanceof Error ? err.message : 'Failed to create folder')
     }
-  };
+  }
 
   const handleNewFolderKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
-      newFolderInputRef.current?.blur();
+      newFolderInputRef.current?.blur()
     } else if (event.key === 'Escape') {
-      setIsCreatingNewFolder(false);
+      setIsCreatingNewFolder(false)
     }
-  };
+  }
 
   const handleUploadSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
     try {
-      await uploadFile(file, currentPath);
-      await refresh();
-      toast.success(`"${file.name}" uploaded`);
+      await uploadFile(file, currentPath)
+      await refresh()
+      toast.success(`"${file.name}" uploaded`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to upload file');
+      toast.error(err instanceof Error ? err.message : 'Failed to upload file')
     }
-  };
+  }
 
   const handleDeleteFile = async (path: string, name: string) => {
     try {
-      await deleteFile(path);
-      await refresh();
-      toast.success(`"${name}" deleted`);
+      await deleteFile(path)
+      await refresh()
+      toast.success(`"${name}" deleted`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete file');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete file')
     }
-  };
+  }
 
   const handleDeleteFolder = async (path: string, name: string) => {
     try {
-      await deleteFolder(path);
-      await refresh();
-      toast.success(`Folder "${name}" deleted`);
+      await deleteFolder(path)
+      await refresh()
+      toast.success(`Folder "${name}" deleted`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete folder');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete folder')
     }
-  };
+  }
 
   const handlePreviewFile = (file: FileEntry) => {
-    const info = getPreviewInfo(file);
+    const info = getPreviewInfo(file)
     if (info.kind === 'unsupported') {
-      toast.error(info.reason ?? '该文件类型暂不支持预览');
-      return;
+      toast.error(info.reason ?? '该文件类型暂不支持预览')
+      return
     }
-    setPreviewFile(file);
-  };
+    setPreviewFile(file)
+  }
 
   const handleDownloadFile = async (path: string, fallbackName: string) => {
     try {
-      setDownloadingPath(path);
-      const response = await fetch(buildDownloadUrl(path), { credentials: 'include' });
-      if (!response.ok) throw new Error('Failed to download file');
-      const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = downloadUrl;
-      anchor.download = getDownloadFilename(response.headers.get('Content-Disposition'), fallbackName);
-      document.body.append(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(downloadUrl);
+      setDownloadingPath(path)
+      const response = await fetch(buildDownloadUrl(path), { credentials: 'include' })
+      if (!response.ok) throw new Error('Failed to download file')
+      const blob = await response.blob()
+      const downloadUrl = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = downloadUrl
+      anchor.download = getDownloadFilename(
+        response.headers.get('Content-Disposition'),
+        fallbackName,
+      )
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(downloadUrl)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to download file');
+      toast.error(err instanceof Error ? err.message : 'Failed to download file')
     } finally {
-      setDownloadingPath(null);
+      setDownloadingPath(null)
     }
-  };
+  }
 
   const handleSaveTextFile = async (filename: string, content: string) => {
     try {
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      const file = new File([blob], filename, { type: 'text/plain;charset=utf-8' });
-      await uploadFile(file, currentPath);
-      await refresh();
-      setIsNewTextFileModalOpen(false);
-      toast.success(`"${filename}" created`);
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+      const file = new File([blob], filename, { type: 'text/plain;charset=utf-8' })
+      await uploadFile(file, currentPath)
+      await refresh()
+      setIsNewTextFileModalOpen(false)
+      toast.success(`"${filename}" created`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create file');
+      toast.error(err instanceof Error ? err.message : 'Failed to create file')
     }
-  };
+  }
 
   const handleUpdateTextFile = async (path: string, content: string) => {
     try {
-      const pathParts = path.split('/');
-      const filename = pathParts.pop() || '';
-      const parentPath = pathParts.join('/');
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      const file = new File([blob], filename, { type: 'text/plain;charset=utf-8' });
-      await updateFile(file, parentPath);
-      await refresh();
-      toast.success(`"${filename}" updated`);
+      const pathParts = path.split('/')
+      const filename = pathParts.pop() || ''
+      const parentPath = pathParts.join('/')
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+      const file = new File([blob], filename, { type: 'text/plain;charset=utf-8' })
+      await updateFile(file, parentPath)
+      await refresh()
+      toast.success(`"${filename}" updated`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update file');
+      toast.error(err instanceof Error ? err.message : 'Failed to update file')
     }
-  };
+  }
 
   return (
     <div className="flex flex-1 flex-col">
-      <PreviewModal file={previewFile} onClose={() => setPreviewFile(null)} onSave={handleUpdateTextFile} />
+      <PreviewModal
+        file={previewFile}
+        onClose={() => setPreviewFile(null)}
+        onSave={handleUpdateTextFile}
+      />
       <NewTextFileModal
         isOpen={isNewTextFileModalOpen}
         onClose={() => setIsNewTextFileModalOpen(false)}
         onSave={handleSaveTextFile}
         isSaving={isUploadingFile}
       />
-      <input ref={fileInputRef} type="file" className="hidden" onChange={handleUploadSelection} disabled={busy} />
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleUploadSelection}
+        disabled={busy}
+      />
       <main className="mx-auto flex w-[96%] max-w-300 flex-1 flex-col gap-4 py-6 md:w-[90%]">
         <section className="card bg-base-100 shadow-sm">
           <div className="card-body gap-4">
             <FileToolbar
               currentPath={currentPath}
               breadcrumbs={breadcrumbs}
-              fileCount={data.files.length}
+              fileCount={filteredFiles.length}
               totalBytes={totalBytes}
               busy={busy}
               isUploadingFile={isUploadingFile}
               isCreatingFolder={isCreatingFolder}
               isRefreshing={isRefreshing}
               isCreatingNewFolder={isCreatingNewFolder}
-              sort={sort}
-              order={order}
+              searchQuery={searchQuery}
               onSetPath={setPath}
               onUploadClick={() => fileInputRef.current?.click()}
               onCreateFolder={handleStartCreateFolder}
               onCreateTextFile={() => setIsNewTextFileModalOpen(true)}
               onRefresh={() => refresh()}
-              onSortChange={(s, o) => { setSort(s); setOrder(o); }}
+              onSearchChange={setSearchQuery}
             />
 
             {error ? (
               <div className="rounded-box border border-base-300 bg-base-200 p-6 text-center">
-                <p className="mb-4 text-sm text-base-content/70">The current folder could not be loaded.</p>
-                <button type="button" className="btn btn-primary btn-sm gap-2" onClick={() => setPath('')}>
+                <p className="mb-4 text-sm text-base-content/70">
+                  The current folder could not be loaded.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm gap-2"
+                  onClick={() => setPath('')}
+                >
                   <Icon icon="mdi:home-outline" className="w-4 h-4" />
                   Go to Home
                 </button>
@@ -253,9 +302,75 @@ export function Dashboard() {
                   <table className="table table-zebra table-md table-fixed w-full [&_td]:px-2 [&_th]:px-2 sm:[&_td]:px-4 sm:[&_th]:px-4">
                     <thead className="bg-base-300">
                       <tr className="bg-base-200">
-                        <th className="w-auto">Name</th>
-                        <th className="hidden sm:table-cell sm:w-28">Size</th>
-                        <th className="hidden sm:table-cell sm:w-46">Updated</th>
+                        <th className="w-auto">
+                          <span className="inline-flex items-center gap-1">
+                            Name
+                            {hasItems && (
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-xs btn-square"
+                                onClick={() => handleHeaderSort('name')}
+                              >
+                                <Icon
+                                  icon={
+                                    sort === 'name'
+                                      ? order === 'asc'
+                                        ? 'mdi:arrow-up'
+                                        : 'mdi:arrow-down'
+                                      : 'mdi:swap-vertical'
+                                  }
+                                  className={`w-3.5 h-3.5 ${sort === 'name' ? 'text-primary' : 'opacity-40'}`}
+                                />
+                              </button>
+                            )}
+                          </span>
+                        </th>
+                        <th className="hidden sm:table-cell sm:w-28">
+                          <span className="inline-flex items-center gap-1">
+                            Size
+                            {hasItems && (
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-xs btn-square"
+                                onClick={() => handleHeaderSort('size')}
+                              >
+                                <Icon
+                                  icon={
+                                    sort === 'size'
+                                      ? order === 'asc'
+                                        ? 'mdi:arrow-up'
+                                        : 'mdi:arrow-down'
+                                      : 'mdi:swap-vertical'
+                                  }
+                                  className={`w-3.5 h-3.5 ${sort === 'size' ? 'text-primary' : 'opacity-40'}`}
+                                />
+                              </button>
+                            )}
+                          </span>
+                        </th>
+                        <th className="hidden sm:table-cell sm:w-46">
+                          <span className="inline-flex items-center gap-1">
+                            Updated
+                            {hasItems && (
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-xs btn-square"
+                                onClick={() => handleHeaderSort('uploadedAt')}
+                              >
+                                <Icon
+                                  icon={
+                                    sort === 'uploadedAt'
+                                      ? order === 'asc'
+                                        ? 'mdi:arrow-up'
+                                        : 'mdi:arrow-down'
+                                      : 'mdi:swap-vertical'
+                                  }
+                                  className={`w-3.5 h-3.5 ${sort === 'uploadedAt' ? 'text-primary' : 'opacity-40'}`}
+                                />
+                              </button>
+                            )}
+                          </span>
+                        </th>
                         <th className="w-14 text-right sm:w-24">
                           <span className="hidden sm:inline">Actions</span>
                         </th>
@@ -270,7 +385,7 @@ export function Dashboard() {
                           onKeyDown={handleNewFolderKeyDown}
                         />
                       )}
-                      {data.folders.map((folder) => (
+                      {filteredFolders.map(folder => (
                         <FolderRow
                           key={`folder:${folder.path}`}
                           folder={folder}
@@ -280,7 +395,7 @@ export function Dashboard() {
                           onDelete={handleDeleteFolder}
                         />
                       ))}
-                      {data.files.map((file) => (
+                      {filteredFiles.map(file => (
                         <FileRow
                           key={`file:${file.path}`}
                           file={file}
@@ -292,21 +407,21 @@ export function Dashboard() {
                           onPreview={handlePreviewFile}
                         />
                       ))}
-                      {data.folders.length === 0 && data.files.length === 0 && (
+                      {filteredFolders.length === 0 && filteredFiles.length === 0 && (
                         <>
                           <tr className="sm:hidden">
                             <td colSpan={2}>
                               <div className="flex flex-col items-center gap-2 py-15 text-base-content/60">
-                                <Icon icon="mdi:folder-open-outline" className="w-12 h-12" />
-                                This folder is empty.
+                                <Icon icon={searchQuery ? 'mdi:magnify-remove-outline' : 'mdi:folder-open-outline'} className="w-12 h-12" />
+                                {searchQuery ? `No results for "${searchQuery}"` : 'This folder is empty.'}
                               </div>
                             </td>
                           </tr>
                           <tr className="hidden sm:table-row">
                             <td colSpan={4}>
                               <div className="flex flex-col items-center gap-2 py-15 text-base-content/60">
-                                <Icon icon="mdi:folder-open-outline" className="w-12 h-12" />
-                                This folder is empty.
+                                <Icon icon={searchQuery ? 'mdi:magnify-remove-outline' : 'mdi:folder-open-outline'} className="w-12 h-12" />
+                                {searchQuery ? `No results for "${searchQuery}"` : 'This folder is empty.'}
                               </div>
                             </td>
                           </tr>
@@ -321,5 +436,5 @@ export function Dashboard() {
         </section>
       </main>
     </div>
-  );
+  )
 }

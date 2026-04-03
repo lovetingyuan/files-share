@@ -1,27 +1,24 @@
-import { Icon } from "@iconify/react";
-import type { SortKey, SortOrder } from "../../types";
-import { formatBytes } from "../utils/fileFormatters";
-
-type SortValue = `${SortKey}:${SortOrder}`;
+import { useRef } from 'react'
+import { Icon } from '@iconify/react'
+import { formatBytes } from '../utils/fileFormatters'
 
 interface FileToolbarProps {
-  currentPath: string;
-  breadcrumbs: string[];
-  fileCount: number;
-  totalBytes: number;
-  busy: boolean;
-  isUploadingFile: boolean;
-  isCreatingFolder: boolean;
-  isRefreshing: boolean;
-  isCreatingNewFolder: boolean;
-  sort: SortKey;
-  order: SortOrder;
-  onSetPath: (path: string) => void;
-  onUploadClick: () => void;
-  onCreateFolder: () => void;
-  onCreateTextFile: () => void;
-  onRefresh: () => void;
-  onSortChange: (sort: SortKey, order: SortOrder) => void;
+  currentPath: string
+  breadcrumbs: string[]
+  fileCount: number
+  totalBytes: number
+  busy: boolean
+  isUploadingFile: boolean
+  isCreatingFolder: boolean
+  isRefreshing: boolean
+  isCreatingNewFolder: boolean
+  searchQuery: string
+  onSetPath: (path: string) => void
+  onUploadClick: () => void
+  onCreateFolder: () => void
+  onCreateTextFile: () => void
+  onRefresh: () => void
+  onSearchChange: (q: string) => void
 }
 
 export function FileToolbar({
@@ -33,21 +30,21 @@ export function FileToolbar({
   isCreatingFolder,
   isRefreshing,
   isCreatingNewFolder,
-  sort,
-  order,
+  searchQuery,
   onSetPath,
   onUploadClick,
   onCreateFolder,
   onCreateTextFile,
   onRefresh,
-  onSortChange,
+  onSearchChange,
 }: FileToolbarProps) {
-  const sortValue: SortValue = `${sort}:${order}`;
-
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const [s, o] = e.target.value.split(":") as [SortKey, SortOrder];
-    onSortChange(s, o);
-  };
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const isSearchExpanded = searchQuery.length > 0
+  const focusSearchInput = () => {
+    requestAnimationFrame(() => {
+      searchInputRef.current?.focus()
+    })
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -57,21 +54,21 @@ export function FileToolbar({
             <button
               type="button"
               className="link link-hover inline-flex items-center gap-1"
-              onClick={() => onSetPath("")}
+              onClick={() => onSetPath('')}
             >
               <Icon icon="mdi:home-outline" className="w-4 h-4" />
               Home
             </button>
           </li>
           {breadcrumbs.map((segment, index) => {
-            const path = breadcrumbs.slice(0, index + 1).join("/");
+            const path = breadcrumbs.slice(0, index + 1).join('/')
             return (
               <li key={path}>
                 <button type="button" className="link link-hover" onClick={() => onSetPath(path)}>
                   {segment}
                 </button>
               </li>
-            );
+            )
           })}
         </ul>
       </div>
@@ -80,10 +77,10 @@ export function FileToolbar({
         <span className="text-xs text-base-content/60 whitespace-nowrap">
           {fileCount} 个文件，共 {formatBytes(totalBytes)}
         </span>
-        <div className="tooltip" data-tip={isUploadingFile ? "Uploading..." : "Upload File"}>
+        <div className="tooltip" data-tip={isUploadingFile ? 'Uploading...' : 'Upload File'}>
           <button
             type="button"
-            className={`btn btn-primary btn-square btn-sm ${isUploadingFile ? "loading" : ""}`}
+            className={`btn btn-primary btn-square btn-sm ${isUploadingFile ? 'loading' : ''}`}
             disabled={busy}
             onClick={onUploadClick}
           >
@@ -100,33 +97,59 @@ export function FileToolbar({
             <Icon icon="mdi:file-plus" className="w-5 h-5" />
           </button>
         </div>
-        <div className="tooltip" data-tip={isCreatingFolder ? "Creating..." : "New Folder"}>
+        <div className="tooltip" data-tip={isCreatingFolder ? 'Creating...' : 'New Folder'}>
           <button
             type="button"
-            className={`btn btn-secondary btn-square btn-sm ${isCreatingFolder ? "loading" : ""}`}
+            className={`btn btn-secondary btn-square btn-sm ${isCreatingFolder ? 'loading' : ''}`}
             disabled={busy || isCreatingNewFolder}
             onClick={onCreateFolder}
           >
             {!isCreatingFolder && <Icon icon="mdi:folder-plus" className="w-5 h-5" />}
           </button>
         </div>
-        <select
-          className="select select-bordered select-sm"
-          value={sortValue}
-          onChange={handleSortChange}
-          disabled={busy}
+        <div
+          className={`group/search relative h-8 shrink-0 transition-[width] duration-200 ease-in-out focus-within:w-40 ${
+            isSearchExpanded ? 'w-40' : 'w-8'
+          }`}
         >
-          <option value="uploadedAt:desc">上传时间（最新）</option>
-          <option value="uploadedAt:asc">上传时间（最旧）</option>
-          <option value="name:asc">文件名（A→Z）</option>
-          <option value="name:desc">文件名（Z→A）</option>
-          <option value="size:desc">文件大小（最大）</option>
-          <option value="size:asc">文件大小（最小）</option>
-        </select>
+          <div className="absolute inset-0 overflow-hidden rounded-field">
+            <input
+              ref={searchInputRef}
+              type="text"
+              className={`input input-sm input-bordered absolute top-0 right-0 h-8 w-40 min-w-0 transition-opacity duration-150 ease-in-out group-focus-within/search:border-base-300 group-focus-within/search:bg-base-100 group-focus-within/search:opacity-100 group-focus-within/search:outline-none ${
+                isSearchExpanded
+                  ? 'border-base-300 bg-base-100 pr-9 opacity-100'
+                  : 'border-transparent bg-transparent pr-9 opacity-0'
+              }`}
+              placeholder="搜索文件名..."
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') {
+                  onSearchChange('')
+                  e.currentTarget.blur()
+                }
+              }}
+            />
+          </div>
+          <div className="pointer-events-none absolute inset-0 rounded-field transition-shadow duration-150 ease-in-out group-focus-within/search:ring-2 group-focus-within/search:ring-base-content/15" />
+          <div className="tooltip absolute inset-y-0 right-0 z-10" data-tip="Search">
+            <button
+              type="button"
+              className={`btn btn-ghost btn-square btn-sm h-8 w-8 transition-opacity duration-150 ease-in-out group-focus-within/search:pointer-events-none group-focus-within/search:opacity-0 ${
+                isSearchExpanded ? 'pointer-events-none opacity-0' : ''
+              }`}
+              onMouseDown={e => e.preventDefault()}
+              onClick={focusSearchInput}
+            >
+              <Icon icon="mdi:magnify" className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
         <div className="tooltip" data-tip="Refresh">
           <button
             type="button"
-            className={`btn btn-outline btn-square btn-sm ${isRefreshing ? "loading" : ""}`}
+            className={`btn btn-ghost btn-square btn-sm ${isRefreshing ? 'loading' : ''}`}
             disabled={busy}
             onClick={onRefresh}
           >
@@ -135,5 +158,5 @@ export function FileToolbar({
         </div>
       </div>
     </div>
-  );
+  )
 }
