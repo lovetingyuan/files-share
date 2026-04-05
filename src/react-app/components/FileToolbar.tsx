@@ -1,25 +1,25 @@
-import { useRef } from "react";
-import { Icon } from "@iconify/react";
-import { formatBytes } from "../utils/fileFormatters";
+import { useRef } from 'react'
+import { Icon } from '@iconify/react'
+import { formatBytes } from '../utils/fileFormatters'
 
 interface FileToolbarProps {
-  currentPath: string;
-  breadcrumbs: string[];
-  fileCount: number;
-  totalBytes: number;
-  busy: boolean;
-  isUploadingFile: boolean;
-  isCreatingFolder: boolean;
-  isRefreshing: boolean;
-  isCreatingNewFolder: boolean;
-  searchQuery: string;
-  isSearchPending: boolean;
-  onSetPath: (path: string) => void;
-  onUploadClick: () => void;
-  onCreateFolder: () => void;
-  onCreateTextFile: () => void;
-  onRefresh: () => void;
-  onSearchChange: (q: string) => void;
+  currentPath: string
+  breadcrumbs: string[]
+  fileCount: number
+  totalBytes: number
+  busy: boolean
+  isUploadingFile: boolean
+  isCreatingFolder: boolean
+  isRefreshing: boolean
+  isCreatingNewFolder: boolean
+  searchQuery: string
+  isSearchPending: boolean
+  onSetPath: (path: string) => void
+  onUploadClick: () => void
+  onCreateFolder: () => void
+  onCreateTextFile: () => void
+  onRefresh: () => void
+  onSearchChange: (q: string) => void
 }
 
 export function FileToolbar({
@@ -40,13 +40,13 @@ export function FileToolbar({
   onRefresh,
   onSearchChange,
 }: FileToolbarProps) {
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const isSearchExpanded = searchQuery.length > 0;
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const isSearchExpanded = searchQuery.length > 0
   const focusSearchInput = () => {
     requestAnimationFrame(() => {
-      searchInputRef.current?.focus();
-    });
-  };
+      searchInputRef.current?.focus()
+    })
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -56,21 +56,21 @@ export function FileToolbar({
             <button
               type="button"
               className="link link-hover inline-flex items-center gap-1"
-              onClick={() => onSetPath("")}
+              onClick={() => onSetPath('')}
             >
               <Icon icon="mdi:home-outline" className="w-4 h-4" />
               Home
             </button>
           </li>
           {breadcrumbs.map((segment, index) => {
-            const path = breadcrumbs.slice(0, index + 1).join("/");
+            const path = breadcrumbs.slice(0, index + 1).join('/')
             return (
               <li key={path}>
                 <button type="button" className="link link-hover" onClick={() => onSetPath(path)}>
                   {segment}
                 </button>
               </li>
-            );
+            )
           })}
         </ul>
       </div>
@@ -79,10 +79,10 @@ export function FileToolbar({
         <span className="text-xs text-base-content/60 whitespace-nowrap">
           {fileCount} 个文件，共 {formatBytes(totalBytes)}
         </span>
-        <div className="tooltip" data-tip={isUploadingFile ? "Uploading..." : "Upload File"}>
+        <div className="tooltip" data-tip={isUploadingFile ? 'Uploading...' : 'Upload File'}>
           <button
             type="button"
-            className={`btn btn-primary btn-square btn-sm ${isUploadingFile ? "loading" : ""}`}
+            className={`btn btn-primary btn-square btn-sm ${isUploadingFile ? 'loading' : ''}`}
             disabled={busy}
             onClick={onUploadClick}
           >
@@ -99,10 +99,10 @@ export function FileToolbar({
             <Icon icon="mdi:file-plus" className="w-5 h-5" />
           </button>
         </div>
-        <div className="tooltip" data-tip={isCreatingFolder ? "Creating..." : "New Folder"}>
+        <div className="tooltip" data-tip={isCreatingFolder ? 'Creating...' : 'New Folder'}>
           <button
             type="button"
-            className={`btn btn-secondary btn-square btn-sm ${isCreatingFolder ? "loading" : ""}`}
+            className={`btn btn-secondary btn-square btn-sm ${isCreatingFolder ? 'loading' : ''}`}
             disabled={busy || isCreatingNewFolder}
             onClick={onCreateFolder}
           >
@@ -111,7 +111,7 @@ export function FileToolbar({
         </div>
         <div
           className={`group/search relative h-8 shrink-0 transition-[width] duration-200 ease-in-out focus-within:w-40 ${
-            isSearchExpanded ? "w-40" : "w-8"
+            isSearchExpanded ? 'w-40' : 'w-8'
           }`}
         >
           <div className="absolute inset-0 overflow-hidden rounded-field">
@@ -120,16 +120,16 @@ export function FileToolbar({
               type="text"
               className={`placeholder:text-[10px] input input-sm input-bordered absolute top-0 right-0 h-8 w-40 min-w-0 transition-opacity duration-150 ease-in-out group-focus-within/search:border-base-300 group-focus-within/search:bg-base-100 group-focus-within/search:opacity-100 group-focus-within/search:outline-none ${
                 isSearchExpanded
-                  ? "border-base-300 bg-base-100 pr-9 opacity-100"
-                  : "border-transparent bg-transparent pr-9 opacity-0"
+                  ? 'border-base-300 bg-base-100 pr-9 opacity-100'
+                  : 'border-transparent bg-transparent pr-9 opacity-0'
               }`}
               placeholder="搜索文件（限当前目录）"
               value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  onSearchChange("");
-                  e.currentTarget.blur();
+              onChange={e => onSearchChange(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') {
+                  onSearchChange('')
+                  e.currentTarget.blur()
                 }
               }}
             />
@@ -139,9 +139,9 @@ export function FileToolbar({
             <button
               type="button"
               className={`btn btn-ghost btn-square btn-sm h-8 w-8 transition-opacity duration-150 ease-in-out group-focus-within/search:pointer-events-none group-focus-within/search:opacity-0 ${
-                isSearchExpanded ? "pointer-events-none opacity-0" : ""
+                isSearchExpanded ? 'pointer-events-none opacity-0' : ''
               }`}
-              onMouseDown={(e) => e.preventDefault()}
+              onMouseDown={e => e.preventDefault()}
               onClick={focusSearchInput}
             >
               <Icon icon="mdi:magnify" className="w-5 h-5" />
@@ -160,7 +160,7 @@ export function FileToolbar({
         <div className="tooltip" data-tip="Refresh">
           <button
             type="button"
-            className={`btn btn-ghost btn-square btn-sm ${isRefreshing ? "loading" : ""}`}
+            className={`btn btn-ghost btn-square btn-sm ${isRefreshing ? 'loading w-8 scale-75' : ''}`}
             disabled={busy}
             onClick={onRefresh}
           >
@@ -169,5 +169,5 @@ export function FileToolbar({
         </div>
       </div>
     </div>
-  );
+  )
 }
