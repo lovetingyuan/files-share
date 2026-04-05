@@ -1,107 +1,107 @@
-import { useEffect, useRef, useState, type ComponentType, type CSSProperties } from 'react'
-import QRCodeImport from 'react-qr-code'
-import { Icon } from '@iconify/react'
-import toast from 'react-hot-toast'
-import type { FileEntry, ShareLinkResponse, ShareDurationOption } from '../../types'
-import { useCreateShareLinkMutation } from '../hooks/useFilesApi'
-import { formatShareDuration, shareDurationOptions } from '../utils/shareDurations'
+import { useEffect, useRef, useState, type ComponentType, type CSSProperties } from "react";
+import QRCodeImport from "react-qr-code";
+import { Icon } from "@iconify/react";
+import toast from "react-hot-toast";
+import type { FileEntry, ShareLinkResponse, ShareDurationOption } from "../../types";
+import { useCreateShareLinkMutation } from "../hooks/useFilesApi";
+import { formatShareDuration, shareDurationOptions } from "../utils/shareDurations";
 
 interface ShareFileModalProps {
-  file: FileEntry | null
-  onClose: () => void
+  file: FileEntry | null;
+  onClose: () => void;
 }
 
 type QRCodeComponentProps = {
-  value: string
-  size?: number
-  className?: string
-  bgColor?: string
-  fgColor?: string
-  style?: CSSProperties
-}
+  value: string;
+  size?: number;
+  className?: string;
+  bgColor?: string;
+  fgColor?: string;
+  style?: CSSProperties;
+};
 
-const DEFAULT_SHARE_DURATION: ShareDurationOption = 3600
+const DEFAULT_SHARE_DURATION: ShareDurationOption = 3600;
 const QRCode = ((QRCodeImport as unknown as { QRCode?: unknown; default?: unknown }).QRCode ??
   (QRCodeImport as unknown as { default?: unknown }).default ??
-  QRCodeImport) as ComponentType<QRCodeComponentProps>
+  QRCodeImport) as ComponentType<QRCodeComponentProps>;
 
 async function copyToClipboard(value: string): Promise<void> {
-  await navigator.clipboard.writeText(value)
+  await navigator.clipboard.writeText(value);
 }
 
 export function ShareFileModal({ file, onClose }: ShareFileModalProps) {
   const [expiresInSeconds, setExpiresInSeconds] =
-    useState<ShareDurationOption>(DEFAULT_SHARE_DURATION)
-  const [shareLink, setShareLink] = useState<ShareLinkResponse | null>(null)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const requestIdRef = useRef(0)
-  const { createShareLink, isMutating } = useCreateShareLinkMutation()
+    useState<ShareDurationOption>(DEFAULT_SHARE_DURATION);
+  const [shareLink, setShareLink] = useState<ShareLinkResponse | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
+  const { createShareLink, isMutating } = useCreateShareLinkMutation();
 
   useEffect(() => {
-    if (!file) return
+    if (!file) return;
 
-    const currentRequestId = requestIdRef.current + 1
-    requestIdRef.current = currentRequestId
-    setLoadError(null)
-    setShareLink(null)
+    const currentRequestId = requestIdRef.current + 1;
+    requestIdRef.current = currentRequestId;
+    setLoadError(null);
+    setShareLink(null);
 
     void createShareLink(file.path, expiresInSeconds)
-      .then(response => {
-        if (requestIdRef.current !== currentRequestId) return
-        setShareLink(response)
+      .then((response) => {
+        if (requestIdRef.current !== currentRequestId) return;
+        setShareLink(response);
       })
-      .catch(error => {
-        if (requestIdRef.current !== currentRequestId) return
-        setLoadError(error instanceof Error ? error.message : 'Failed to generate share link')
-      })
-  }, [createShareLink, expiresInSeconds, file])
+      .catch((error) => {
+        if (requestIdRef.current !== currentRequestId) return;
+        setLoadError(error instanceof Error ? error.message : "Failed to generate share link");
+      });
+  }, [createShareLink, expiresInSeconds, file]);
 
-  if (!file) return null
+  if (!file) return null;
 
-  const isLoading = isMutating || shareLink === null
-  const shareDurationLabel = formatShareDuration(expiresInSeconds)
+  const isLoading = isMutating || shareLink === null;
+  const shareDurationLabel = formatShareDuration(expiresInSeconds);
 
   const handleCopyLink = async () => {
-    if (!shareLink) return
+    if (!shareLink) return;
 
     try {
-      await copyToClipboard(shareLink.shareUrl)
-      toast.success('下载链接已复制')
+      await copyToClipboard(shareLink.shareUrl);
+      toast.success("下载链接已复制");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to copy share link')
+      toast.error(error instanceof Error ? error.message : "Failed to copy share link");
     }
-  }
+  };
 
   const handleShare = async () => {
-    if (!shareLink) return
+    if (!shareLink) return;
 
-    const shareText = `文件名：${shareLink.fileName}\n有效期：${shareDurationLabel}\n下载链接：${shareLink.shareUrl}`
+    const shareText = `文件名：${shareLink.fileName}\n有效期：${shareDurationLabel}\n下载链接：${shareLink.shareUrl}`;
 
     try {
-      if (typeof navigator.share === 'function') {
+      if (typeof navigator.share === "function") {
         await navigator.share({
           title: shareLink.fileName,
           text: shareText,
           url: shareLink.shareUrl,
-        })
-        return
+        });
+        return;
       }
 
-      await copyToClipboard(shareLink.shareUrl)
-      toast.success('浏览器不支持系统分享，已复制下载链接')
+      await copyToClipboard(shareLink.shareUrl);
+      toast.success("浏览器不支持系统分享，已复制下载链接");
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        return
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
       }
 
-      if (typeof navigator.share !== 'function') {
-        toast.error(error instanceof Error ? error.message : 'Failed to copy share link')
-        return
+      if (typeof navigator.share !== "function") {
+        toast.error(error instanceof Error ? error.message : "Failed to copy share link");
+        return;
       }
 
-      toast.error(error instanceof Error ? error.message : 'Failed to share file')
+      toast.error(error instanceof Error ? error.message : "Failed to share file");
     }
-  }
+  };
 
   return (
     <dialog className="modal modal-open">
@@ -132,11 +132,11 @@ export function ShareFileModal({ file, onClose }: ShareFileModalProps) {
               <select
                 className="select select-sm w-full"
                 value={String(expiresInSeconds)}
-                onChange={event =>
+                onChange={(event) =>
                   setExpiresInSeconds(Number(event.target.value) as ShareDurationOption)
                 }
               >
-                {shareDurationOptions.map(option => (
+                {shareDurationOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -184,7 +184,7 @@ export function ShareFileModal({ file, onClose }: ShareFileModalProps) {
                     className="h-45 w-45"
                     bgColor="#ffffff"
                     fgColor="#111827"
-                    style={{ shapeRendering: 'crispEdges' }}
+                    style={{ shapeRendering: "crispEdges" }}
                   />
                 ) : (
                   <div className="flex h-36 w-36 items-center justify-center text-base-content/45">
@@ -201,11 +201,11 @@ export function ShareFileModal({ file, onClose }: ShareFileModalProps) {
             </button>
             <button
               type="button"
-              className={`btn btn-primary btn-sm ${isLoading ? 'loading' : ''}`}
+              className={`btn btn-primary btn-sm ${isLoading ? "loading" : ""}`}
               disabled={isLoading || Boolean(loadError) || !shareLink}
               onClick={handleShare}
             >
-              {isLoading ? '生成中' : '分享'}
+              {isLoading ? "生成中" : "分享"}
             </button>
           </div>
         </div>
@@ -216,5 +216,5 @@ export function ShareFileModal({ file, onClose }: ShareFileModalProps) {
         </button>
       </form>
     </dialog>
-  )
+  );
 }
