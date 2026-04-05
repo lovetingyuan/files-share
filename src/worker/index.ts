@@ -9,6 +9,7 @@ import { jsonError } from "./utils/response";
 import authRoutes from "./routes/auth";
 import profileRoutes from "./routes/profile";
 import fileRoutes from "./routes/files";
+import shareRoutes from "./routes/shares";
 
 export { UserDO };
 
@@ -51,5 +52,6 @@ app.use("/api/files/*", requireAuth());
 app.route("/", authRoutes);
 app.route("/", profileRoutes);
 app.route("/", fileRoutes);
+app.route("/", shareRoutes);
 
 export default app;

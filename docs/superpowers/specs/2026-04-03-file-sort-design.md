@@ -12,10 +12,10 @@ Add a sort/order dropdown to the file list toolbar. Sorting applies to files onl
 
 `GET /api/files` gains two new optional params:
 
-| Param | Values | Default |
-|-------|--------|---------|
-| `sort` | `name` \| `size` \| `uploadedAt` | `uploadedAt` |
-| `order` | `asc` \| `desc` | `desc` |
+| Param   | Values                           | Default      |
+| ------- | -------------------------------- | ------------ |
+| `sort`  | `name` \| `size` \| `uploadedAt` | `uploadedAt` |
+| `order` | `asc` \| `desc`                  | `desc`       |
 
 ### Full-Load Logic
 
@@ -24,6 +24,7 @@ Replace the single `c.env.FILES_BUCKET.list(...)` call with a loop that follows 
 ### Sorting
 
 After collecting all file objects, sort by the chosen key:
+
 - `name`: `localeCompare`
 - `size`: numeric comparison
 - `uploadedAt`: `Date` comparison
@@ -41,9 +42,10 @@ After collecting all file objects, sort by the chosen key:
 Remove `truncated` and `cursor` from `FileListResponse`.
 
 Add sort types:
+
 ```ts
-export type SortKey = 'name' | 'size' | 'uploadedAt';
-export type SortOrder = 'asc' | 'desc';
+export type SortKey = "name" | "size" | "uploadedAt";
+export type SortOrder = "asc" | "desc";
 ```
 
 ### `src/react-app/hooks/useFilesApi.ts`
@@ -56,14 +58,14 @@ export type SortOrder = 'asc' | 'desc';
 
 Add `sort`, `order`, `onSortChange` props. Render a DaisyUI `<select>` to the right of the New Folder button with options:
 
-| Label | sort | order |
-|-------|------|-------|
-| 上传时间（最新）| `uploadedAt` | `desc` |
-| 上传时间（最旧）| `uploadedAt` | `asc` |
-| 文件名（A→Z）| `name` | `asc` |
-| 文件名（Z→A）| `name` | `desc` |
-| 文件大小（最大）| `size` | `desc` |
-| 文件大小（最小）| `size` | `asc` |
+| Label            | sort         | order  |
+| ---------------- | ------------ | ------ |
+| 上传时间（最新） | `uploadedAt` | `desc` |
+| 上传时间（最旧） | `uploadedAt` | `asc`  |
+| 文件名（A→Z）    | `name`       | `asc`  |
+| 文件名（Z→A）    | `name`       | `desc` |
+| 文件大小（最大） | `size`       | `desc` |
+| 文件大小（最小） | `size`       | `asc`  |
 
 The select value is a combined string `"${sort}:${order}"` for easy binding.
 

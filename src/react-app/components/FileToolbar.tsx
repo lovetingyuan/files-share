@@ -123,7 +123,7 @@ export function FileToolbar({
                   ? 'border-base-300 bg-base-100 pr-9 opacity-100'
                   : 'border-transparent bg-transparent pr-9 opacity-0'
               }`}
-              placeholder="搜索文件(限当前目录)..."
+              placeholder="搜索文件（限当前目录）"
               value={searchQuery}
               onChange={e => onSearchChange(e.target.value)}
               onKeyDown={e => {

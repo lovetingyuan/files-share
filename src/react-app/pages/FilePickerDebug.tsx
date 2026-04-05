@@ -97,7 +97,8 @@ function ProbeCard({ title, description, mode, onLog }: ProbeCardProps) {
     }
   };
 
-  const inputClassName = mode === "direct" ? "file-input file-input-bordered w-full max-w-md" : "sr-only";
+  const inputClassName =
+    mode === "direct" ? "file-input file-input-bordered w-full max-w-md" : "sr-only";
 
   return (
     <section className="card bg-base-100 shadow-sm">
@@ -184,8 +185,8 @@ export function FilePickerDebug() {
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold">File Picker Debug</h1>
           <p className="max-w-3xl text-sm leading-6 text-base-content/70">
-            这个页面只验证 `input[type=file]` 的原生打开与取消行为，不接入上传、toast、
-            tooltip、SWR 或文件读取逻辑。
+            这个页面只验证 `input[type=file]` 的原生打开与取消行为，不接入上传、toast、 tooltip、SWR
+            或文件读取逻辑。
           </p>
         </div>
         <div className="flex gap-2">
@@ -263,7 +264,9 @@ export function FilePickerDebug() {
                       <td>{log.atMs.toFixed(1)}</td>
                       <td>{log.source}</td>
                       <td>{log.event}</td>
-                      <td className="break-all text-xs text-base-content/70">{log.detail ?? "-"}</td>
+                      <td className="break-all text-xs text-base-content/70">
+                        {log.detail ?? "-"}
+                      </td>
                     </tr>
                   ))
                 )}

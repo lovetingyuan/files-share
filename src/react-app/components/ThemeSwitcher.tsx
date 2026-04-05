@@ -1,29 +1,29 @@
-import { Icon } from '@iconify/react'
-import { useTheme } from '../hooks/useTheme'
+import { Icon } from "@iconify/react";
+import { useTheme } from "../hooks/useTheme";
 
 export function ThemeSwitcher() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme();
 
   const handleToggle = () => {
-    const next: Record<string, 'light' | 'dark' | 'system'> = {
-      system: 'light',
-      light: 'dark',
-      dark: 'system',
-    }
-    setTheme(next[theme])
-  }
+    const next: Record<string, "light" | "dark" | "system"> = {
+      system: "light",
+      light: "dark",
+      dark: "system",
+    };
+    setTheme(next[theme]);
+  };
 
   const icons = {
-    light: 'mdi:white-balance-sunny',
-    dark: 'mdi:moon-waning-crescent',
-    system: 'mdi:brightness-auto',
-  }
+    light: "mdi:white-balance-sunny",
+    dark: "mdi:moon-waning-crescent",
+    system: "mdi:brightness-auto",
+  };
 
   const labels = {
-    light: '亮色',
-    dark: '暗色',
-    system: '系统',
-  }
+    light: "亮色",
+    dark: "暗色",
+    system: "系统",
+  };
 
   return (
     <button
@@ -35,5 +35,5 @@ export function ThemeSwitcher() {
     >
       <Icon icon={icons[theme]} className="w-5 h-5" />
     </button>
-  )
+  );
 }

@@ -18,6 +18,7 @@ import { Verify } from "./pages/Verify";
 import { Dashboard } from "./pages/Dashboard";
 import { Profile } from "./pages/Profile";
 import { FilePickerDebug } from "./pages/FilePickerDebug";
+import { ShareDownload } from "./pages/ShareDownload";
 
 function AuthGate() {
   const { authLoading } = useAuth();
@@ -53,6 +54,7 @@ function AppContent() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
+        <Route path="share/:token" element={<ShareDownload />} />
         <Route element={<AuthGate />}>
           <Route
             path="login"

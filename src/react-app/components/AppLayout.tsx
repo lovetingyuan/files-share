@@ -1,13 +1,13 @@
-import { Link, Outlet, useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import { useProfile } from '../hooks/useProfileApi'
-import { UserAvatar } from './UserAvatar'
-import { ThemeSwitcher } from './ThemeSwitcher'
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { useProfile } from "../hooks/useProfileApi";
+import { UserAvatar } from "./UserAvatar";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 function AuthenticatedNavMenu() {
-  const navigate = useNavigate()
-  const { user } = useAuth()
-  const { profile } = useProfile()
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { profile } = useProfile();
 
   return (
     <div className="flex-none flex items-center gap-2">
@@ -16,16 +16,16 @@ function AuthenticatedNavMenu() {
         type="button"
         className="btn btn-ghost btn-circle avatar"
         aria-label="Go to profile"
-        onClick={() => navigate('/profile')}
+        onClick={() => navigate("/profile")}
       >
         <UserAvatar email={user?.email} avatarUrl={profile?.avatarUrl} />
       </button>
     </div>
-  )
+  );
 }
 
 export function AppLayout() {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
@@ -53,5 +53,5 @@ export function AppLayout() {
         Built at {_builtTime}
       </footer>
     </div>
-  )
+  );
 }

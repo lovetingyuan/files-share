@@ -3,8 +3,10 @@ import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import type {
   CreateFolderRequest,
+  CreateShareLinkRequest,
   FileListResponse,
   FileMutationResponse,
+  ShareLinkResponse,
   SortKey,
   SortOrder,
 } from "../../types";
@@ -13,6 +15,7 @@ import { ApiError, apiRequest } from "../utils/apiRequest";
 const FILES_ENDPOINT = "/api/files";
 const FILE_OBJECT_ENDPOINT = "/api/files/object";
 const FILE_FOLDERS_ENDPOINT = "/api/files/folders";
+const FILE_SHARE_LINKS_ENDPOINT = "/api/files/share-links";
 
 type FileListKey = [string, string, SortKey, SortOrder];
 
@@ -209,6 +212,35 @@ export function useDeleteFolderMutation() {
 
   return {
     deleteFolder,
+    isMutating,
+  };
+}
+
+export function useCreateShareLinkMutation() {
+  const { trigger, isMutating } = useSWRMutation<
+    ShareLinkResponse,
+    ApiError,
+    string,
+    CreateShareLinkRequest
+  >(
+    FILE_SHARE_LINKS_ENDPOINT,
+    (url, { arg }) =>
+      apiRequest<ShareLinkResponse>(url, {
+        method: "POST",
+        body: JSON.stringify(arg),
+      }),
+    {
+      throwOnError: true,
+    },
+  );
+
+  const createShareLink = (
+    path: string,
+    expiresInSeconds: CreateShareLinkRequest["expiresInSeconds"],
+  ) => trigger({ path, expiresInSeconds });
+
+  return {
+    createShareLink,
     isMutating,
   };
 }

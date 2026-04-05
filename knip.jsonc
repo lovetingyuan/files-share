@@ -4,5 +4,5 @@
   // Cloudflare runtime and test imports resolve from virtual modules, not an installed npm package.
   "ignoreDependencies": ["cloudflare"],
   // Declaration-only files can be required for tooling without being imported in source.
-  "ignoreFiles": ["src/react-app/vite-env.d.ts", "scripts/babel-plugin-relative-path.d.ts"]
+  "ignoreFiles": ["src/react-app/vite-env.d.ts", "scripts/babel-plugin-relative-path.d.ts"],
 }

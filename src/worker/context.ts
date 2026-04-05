@@ -5,6 +5,7 @@ export type AppBindings = Env & {
   ENVIRONMENT?: string;
   MAX_UPLOAD_BYTES?: string;
   RESEND_API_KEY?: string;
+  SHARE_LINK_SECRET?: string;
   SENDER_EMAIL?: string;
 };
 
