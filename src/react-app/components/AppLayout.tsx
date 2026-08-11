@@ -71,7 +71,7 @@ export function AppLayout() {
           {isDashboardRoute ? <DashboardTreeSidebarButton /> : null}
           <div className="mr-auto p-1">
             <Link to="/" className="flex items-center gap-2 text-xl">
-              <img src="/favicon.svg" alt="logo" className="h-6 w-6" />
+              <img src="/fileyard-logo.png" alt="" className="h-7 w-7 object-contain" />
               <span>Fileyard</span>
             </Link>
           </div>

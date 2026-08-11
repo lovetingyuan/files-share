@@ -251,7 +251,10 @@ function OpenDialog({
                 {showConfirmButton && onConfirm && (
                   <button
                     type="button"
-                    className={cn(confirmButtonClassName || "btn btn-sm btn-primary")}
+                    className={cn(
+                      confirmButtonClassName || "btn btn-sm btn-primary",
+                      "disabled:text-base-content/20",
+                    )}
                     onClick={() => void confirm()}
                     disabled={isConfirming || confirmLoading || confirmDisabled}
                   >
