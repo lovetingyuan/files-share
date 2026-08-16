@@ -35,6 +35,7 @@ import {
   type UploadObjectQuery,
 } from "../validation";
 export { previewFile } from "./filePreviewHandler";
+export { renderPreviewFile } from "./fileRenderHandler";
 
 function getDownloadHeaders(object: R2Object, fileName: string): Headers {
   const headers = new Headers();

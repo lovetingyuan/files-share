@@ -5,6 +5,7 @@ import {
   deleteFile,
   headDownloadFile,
   previewFile,
+  renderPreviewFile,
   renameFile,
   uploadFile,
 } from "./fileObjectHandlers";
@@ -86,6 +87,7 @@ files.patch("/api/files/object", renameJsonValidator, renameFile);
 files.on("HEAD", "/api/files/object", pathQueryValidator, headDownloadFile);
 files.get("/api/files/object", pathQueryValidator, downloadFile);
 files.get("/api/files/preview", pathQueryValidator, previewFile);
+files.get("/api/files/preview/rendered", pathQueryValidator, renderPreviewFile);
 files.delete("/api/files/object", pathQueryValidator, deleteFile);
 
 export default files;

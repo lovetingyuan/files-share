@@ -1,5 +1,7 @@
+import { RENDERED_MARKDOWN_MAX_BYTES } from "../../../../../types";
+
 export const PREVIEW_SIZE_LIMITS = {
-  TEXT: 2 * 1024 * 1024,
+  TEXT: RENDERED_MARKDOWN_MAX_BYTES,
   IMAGE: 15 * 1024 * 1024,
   PDF: 30 * 1024 * 1024,
   VIDEO: 200 * 1024 * 1024,

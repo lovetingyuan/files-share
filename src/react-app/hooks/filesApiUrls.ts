@@ -15,6 +15,7 @@ export const FILE_FOLDER_PASSWORD_FORGOT_VERIFY_ENDPOINT =
   "/api/files/folders/password/forgot/verify";
 export const FILE_FOLDER_PASSWORD_POLICY_ENDPOINT = "/api/files/folders/password-policy";
 export const FILE_FOLDER_UNLOCKS_ENDPOINT = "/api/files/folders/unlocks";
+export const FILE_RENDERED_PREVIEW_ENDPOINT = "/api/files/preview/rendered";
 
 export type FileListKey = [string, string, SortKey, SortOrder];
 
@@ -68,4 +69,12 @@ export function buildPreviewUrl(
     params.set("v", version);
   }
   return `/api/files/preview?${params.toString()}`;
+}
+
+export function buildRenderedPreviewUrl(path: string, folderUnlockToken?: string | null): string {
+  const params = new URLSearchParams({ path });
+  if (folderUnlockToken) {
+    params.set("folderUnlockToken", folderUnlockToken);
+  }
+  return `${FILE_RENDERED_PREVIEW_ENDPOINT}?${params.toString()}`;
 }

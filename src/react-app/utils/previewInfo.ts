@@ -1,4 +1,9 @@
-import type { FileEntry } from "../../types";
+import {
+  HTML_RENDER_EXTENSIONS,
+  MARKDOWN_RENDER_EXTENSIONS,
+  type FileEntry,
+  type RenderedPreviewKind,
+} from "../../types";
 
 export type PreviewKind = "image" | "video" | "audio" | "pdf" | "text" | "unsupported";
 
@@ -124,4 +129,23 @@ export function getPreviewInfo(file: FileEntry): PreviewInfo {
   }
 
   return { kind: "unsupported", reason: "该文件类型暂不支持预览" };
+}
+
+export function getRenderedPreviewKind(file: FileEntry): RenderedPreviewKind | null {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const contentType = (file.contentType ?? "").toLowerCase();
+
+  if (
+    HTML_RENDER_EXTENSIONS.has(ext) ||
+    contentType === "text/html" ||
+    contentType === "application/xhtml+xml"
+  ) {
+    return "html";
+  }
+
+  if (MARKDOWN_RENDER_EXTENSIONS.has(ext) || contentType === "text/markdown") {
+    return "markdown";
+  }
+
+  return null;
 }

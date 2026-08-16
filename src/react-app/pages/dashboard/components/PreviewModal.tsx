@@ -5,14 +5,19 @@ import MdiInformationOutline from '~icons/mdi/information-outline'
 import MdiPencil from '~icons/mdi/pencil'
 import toast from 'react-hot-toast'
 import { Dialog } from '../../../components/Dialog'
-import { buildPreviewUrl, useUpdateFileMutation } from '../../../hooks/useFilesApi'
+import {
+  buildPreviewUrl,
+  buildRenderedPreviewUrl,
+  useUpdateFileMutation,
+} from '../../../hooks/useFilesApi'
 import { useAppStore } from '../../../store'
-import { getPreviewInfo } from '../../../utils/previewInfo'
+import { getPreviewInfo, getRenderedPreviewKind } from '../../../utils/previewInfo'
 import { getFolderUnlockTokenForPath } from '../../../utils/folderUnlockTokens'
 import { closeFilePreview, openFileDetails, openFilePreview } from '../actions'
 import { downloadDashboardFile, runWithLargeFileUploadToast } from '../fileOperations'
 import { useDashboardFileView } from '../hooks/useDashboardFileView'
 import { getAdjacentPreviewFile, type PreviewNavigationDirection } from '../utils/previewNavigation'
+import { RENDERED_MARKDOWN_MAX_BYTES } from '../../../../types'
 import {
   getPreviewContentWrapperClassName,
   getPreviewModalBoxClassName,
@@ -87,6 +92,7 @@ export function PreviewModal() {
   void folderUnlockTokens
   const info = file ? getPreviewInfo(file) : { kind: 'unsupported' as const }
   const effectiveInfo = forceTextPreview ? { kind: 'text' as const } : info
+  const renderedPreviewKind = file ? getRenderedPreviewKind(file) : null
 
   if (!file) {
     return null
@@ -94,6 +100,13 @@ export function PreviewModal() {
 
   const canForceTextPreview = info.kind === 'unsupported' && file.size <= PREVIEW_SIZE_LIMITS.TEXT
   const canEditTextFile = effectiveInfo.kind === 'text'
+  const canViewRendered =
+    renderedPreviewKind !== null &&
+    (renderedPreviewKind === 'html' || file.size <= RENDERED_MARKDOWN_MAX_BYTES)
+  const renderedPreviewUrl =
+    file && canViewRendered
+      ? buildRenderedPreviewUrl(file.path, getFolderUnlockTokenForPath(file.path))
+      : ''
   const loadedText =
     loadedTextState && loadedTextState.path === file.path ? loadedTextState.content : null
   const previousFile = getAdjacentPreviewFile(filteredFiles, file, 'previous')
@@ -254,6 +267,16 @@ export function PreviewModal() {
                     isCopied={isCopyFeedbackVisible}
                     onClick={() => void handleCopyText()}
                   />
+                  {canViewRendered ? (
+                    <a
+                      className="btn btn-sm btn-ghost"
+                      href={renderedPreviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      查看渲染
+                    </a>
+                  ) : null}
                   {canEditTextFile ? (
                     <button
                       type="button"

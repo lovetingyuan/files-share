@@ -21,6 +21,12 @@ export type ShareDurationOption = (typeof SHARE_DURATION_OPTIONS)[number];
 export const SHARE_PASSWORD_MIN_LENGTH = 6;
 export const SHARE_PASSWORD_MAX_LENGTH = 128;
 
+export type RenderedPreviewKind = "markdown" | "html";
+
+export const MARKDOWN_RENDER_EXTENSIONS = new Set(["md", "markdown"]);
+export const HTML_RENDER_EXTENSIONS = new Set(["html", "htm"]);
+export const RENDERED_MARKDOWN_MAX_BYTES = 2 * 1024 * 1024;
+
 export interface ProfileResponse {
   success: true;
   profile: Profile;
